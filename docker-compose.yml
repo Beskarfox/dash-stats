@@ -26,7 +26,7 @@ services:
       - proxy
     restart: always
     labels:
-      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.enable=false"
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
       - "traefik.http.routers.stats-server.rule=Host(`api.stats.beskarfox.com`)"
@@ -48,7 +48,7 @@ services:
       - proxy
     restart: always
     labels:
-      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.enable=false"
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
       - "traefik.http.routers.stats-client.rule=Host(`stats.beskarfox.com`)"
