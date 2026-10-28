@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/table";
 import { SystemMetric } from "@/types";
 import { format } from "date-fns";
+import GlassSurface from "@/components/reactbits/GlassSurface";
 
 interface DataTableProps {
   data: SystemMetric[];
@@ -15,7 +16,11 @@ interface DataTableProps {
 
 export const DataTable = ({ data }: DataTableProps) => {
   return (
-    <div className="rounded-xl glass-card-blended bg-card/40 backdrop-blur-xl overflow-hidden shadow-xl">
+    <GlassSurface
+      borderRadius={16}
+      className="rounded-xl overflow-hidden shadow-xl w-full"
+      contentClassName="w-full h-full block p-0"
+    >
       <Table>
         <TableHeader className="bg-zinc-900/40">
           <TableRow className="border-b border-border/30 hover:bg-transparent">
@@ -58,6 +63,6 @@ export const DataTable = ({ data }: DataTableProps) => {
           )}
         </TableBody>
       </Table>
-    </div>
+    </GlassSurface>
   );
 };

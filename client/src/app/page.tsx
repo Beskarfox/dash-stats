@@ -12,6 +12,7 @@ import { metricsService, backupsService } from "@/services/api";
 import { SystemMetric, MinecraftStatus, BackupsStatusResponse } from "@/types";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import GlassSurface from "@/components/reactbits/GlassSurface";
 
 export default function Home() {
   const [isMounted, setIsMounted] = useState(false);
@@ -167,7 +168,11 @@ export default function Home() {
   );
 
   const historyToolbar = (
-    <div className="flex bg-zinc-900/60 p-1 rounded-xl border border-white/5 backdrop-blur-md shrink-0">
+    <GlassSurface
+      borderRadius={12}
+      className="p-1 rounded-xl shrink-0"
+      contentClassName="flex items-center gap-1 p-0"
+    >
       {(["all", "30d", "7d", "24h"] as const).map((range) => {
         const labels = {
           "24h": "24 heures",
@@ -189,7 +194,7 @@ export default function Home() {
           </button>
         );
       })}
-    </div>
+    </GlassSurface>
   );
 
   if (!isMounted) {

@@ -1,22 +1,33 @@
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
+import GlassSurface, { type GlassSurfaceProps } from "@/components/reactbits/GlassSurface"
+
+export interface CardProps extends Omit<GlassSurfaceProps, "size"> {
+  size?: "default" | "sm"
+}
 
 function Card({
   className,
   size = "default",
+  borderRadius = 16,
+  children,
   ...props
-}: React.ComponentProps<"div"> & { size?: "default" | "sm" }) {
+}: CardProps) {
   return (
-    <div
+    <GlassSurface
       data-slot="card"
       data-size={size}
+      borderRadius={borderRadius}
       className={cn(
-        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-card-foreground [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl text-sm text-card-foreground [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
         className
       )}
+      contentClassName="flex flex-col w-full h-full p-0"
       {...props}
-    />
+    >
+      {children}
+    </GlassSurface>
   )
 }
 

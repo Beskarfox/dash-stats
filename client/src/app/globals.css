@@ -146,10 +146,10 @@
 /* Simple borders everywhere */
 .glass-card-blended, .glass-btn-blended {
   position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  background-color: rgba(255, 255, 255, 0.03) !important;
-  backdrop-filter: blur(16px) saturate(120%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(120%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
 }
 
 .glass-card-blended::before, 
