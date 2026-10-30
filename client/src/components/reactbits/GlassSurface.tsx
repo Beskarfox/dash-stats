@@ -2,6 +2,7 @@
 
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useState, useRef, useId, type CSSProperties, type ReactNode, type RefObject } from 'react';
+import './GlassSurface.css';
 
 export type GlassSurfaceChannel = 'R' | 'G' | 'B';
 
@@ -48,7 +49,7 @@ type ShapeArt =
   | { src: string; box: ShapeBox; line: string; glow: string; failed?: false }
   | { src: string; failed: true };
 
-export interface GlassSurfaceProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface GlassSurfaceProps {
   children?: ReactNode;
   width?: number | string;
   height?: number | string;
@@ -405,8 +406,8 @@ const RING = 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)';
 
 const GlassSurface = ({
   children,
-  width,
-  height,
+  width = 200,
+  height = 80,
   borderRadius = 20,
   borderWidth = 0.07,
   brightness = 50,
@@ -427,9 +428,7 @@ const GlassSurface = ({
   backdrop,
   shape,
   className = '',
-  style = {},
-  contentClassName,
-  ...props
+  style = {}
 }: GlassSurfaceProps) => {
   const uniqueId = useId().replace(/:/g, '-');
   const filterId = `glass-filter-${uniqueId}`;
@@ -865,44 +864,28 @@ const GlassSurface = ({
       ? { opacity: 0, transition: 'none' }
       : {};
 
-  const frost = blurSupported
-    ? `light-dark(hsl(0 0% 100% / ${0.12 + backgroundOpacity * 0.5}), hsl(0 0% 100% / ${0.04 + backgroundOpacity * 0.3}))`
-    : 'light-dark(hsl(0 0% 100% / 0.72), hsl(0 0% 12% / 0.72))';
-  const fallbackFilter = `blur(12px) saturate(${saturation * 1.4}) brightness(1.04)`;
-
-  const modeStyle: CSSProperties = webgl
-    ? { boxShadow: WEBGL_SHADOW }
-    : refractive
-      ? {
-          background: `light-dark(hsl(0 0% 100% / ${backgroundOpacity}), hsl(0 0% 0% / ${backgroundOpacity}))`,
-          backdropFilter: `url(#${filterId}) saturate(${saturation})`,
-          boxShadow: SVG_SHADOW
-        }
-      : {
-          background: frost,
-          WebkitBackdropFilter: fallbackFilter,
-          backdropFilter: fallbackFilter,
-          boxShadow: FALLBACK_SHADOW
-        };
+  const frost = 'light-dark(hsl(0 0% 100% / calc(0.12 + var(--glass-frost, 0) * 0.5)), hsl(0 0% 100% / calc(0.04 + var(--glass-frost, 0) * 0.3)))';
+  const fallbackFilter = `blur(12px) saturate(calc(var(--glass-saturation, 1) * 1.4)) brightness(1.04)`;
 
   const containerStyle = {
     ...style,
-    ...(width !== undefined ? { width: typeof width === 'number' ? `${width}px` : width } : {}),
-    ...(height !== undefined ? { height: typeof height === 'number' ? `${height}px` : height } : {}),
+    width: typeof width === 'number' ? `${width}px` : width,
+    height: typeof height === 'number' ? `${height}px` : height,
     borderRadius: `${borderRadius}px`,
-    ...modeStyle,
+    '--glass-frost': backgroundOpacity,
+    '--glass-saturation': saturation,
+    '--filter-id': `url(#${filterId})`,
     ...shapeStyle
   } as CSSProperties;
 
   return (
     <div
       ref={containerRef}
-      className={`relative flex items-center justify-center overflow-hidden transition-opacity duration-[260ms] ease-out focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:[outline-color:light-dark(#007aff,#0a84ff)] ${className}`}
+      className={`glass-surface ${webgl ? 'glass-surface--webgl' : refractive ? 'glass-surface--svg' : 'glass-surface--fallback'} ${className}`}
       style={containerStyle}
-      {...props}
     >
       <svg
-        className="pointer-events-none absolute inset-0 -z-10 h-full w-full opacity-0"
+        className="glass-surface__filter"
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
@@ -959,45 +942,23 @@ const GlassSurface = ({
         <canvas
           ref={canvasRef}
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 h-full w-full rounded-[inherit]"
+          className="glass-surface__canvas"
         />
       )}
       {webgl && (
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 rounded-[inherit]"
-          style={{
-            background: `light-dark(hsl(0 0% 100% / ${backgroundOpacity}), hsl(0 0% 0% / ${backgroundOpacity}))`,
-            boxShadow: outline ? 'none' : FRAME_SHADOW
-          }}
+          className="glass-surface__frame"
+          style={outline ? { boxShadow: 'none' } : undefined}
         />
       )}
-      {frosted && (
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 rounded-[inherit]"
-          style={{ background: SHEEN }}
-        />
-      )}
-      {frosted && !outline && (
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 rounded-[inherit] p-[3px]"
-          style={{
-            background: RIM,
-            WebkitMask: RING,
-            WebkitMaskComposite: 'xor',
-            mask: RING,
-            maskComposite: 'exclude'
-          }}
-        />
-      )}
+      {frosted && <span className="glass-surface__sheen" aria-hidden="true" />}
+      {frosted && !outline && <span className="glass-surface__rim" aria-hidden="true" />}
       {outline && (
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0"
+          className="glass-surface__glow"
           style={{
-            background: frosted ? GLOW.fallback : GLOW.svg,
             WebkitMaskImage: `url(${outline.glow})`,
             maskImage: `url(${outline.glow})`,
             WebkitMaskSize: '100% 100%',
@@ -1008,9 +969,8 @@ const GlassSurface = ({
       {outline && (
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0"
+          className="glass-surface__line"
           style={{
-            background: frosted ? LINE.fallback : LINE.svg,
             WebkitMaskImage: `url(${outline.line})`,
             maskImage: `url(${outline.line})`,
             WebkitMaskSize: '100% 100%',
@@ -1019,7 +979,7 @@ const GlassSurface = ({
         />
       )}
 
-      <div className={`relative z-[1] w-full h-full rounded-[inherit] ${contentClassName || 'flex items-center justify-center p-2'}`}>
+      <div className="glass-surface__content">
         {children}
       </div>
     </div>

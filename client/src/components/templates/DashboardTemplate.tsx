@@ -49,10 +49,7 @@ export const DashboardTemplate = ({
   }, []);
   return (
     <div className="relative flex min-h-screen flex-col md:flex-row bg-background text-foreground overflow-hidden">
-      {/* Modern Aurora / Mesh gradient glowing background blobs */}
-      <div className="fixed top-[-10%] left-[-5%] w-[600px] h-[600px] rounded-full bg-violet-600/12 blur-[130px] pointer-events-none z-0" />
-      <div className="fixed top-[25%] right-[-10%] w-[500px] h-[500px] rounded-full bg-indigo-500/10 blur-[120px] pointer-events-none z-0" />
-      <div className="fixed bottom-[-10%] left-[15%] w-[550px] h-[550px] rounded-full bg-fuchsia-600/8 blur-[140px] pointer-events-none z-0" />
+      <img src="https://reactbits.dev/assets/demo/night-sky.webp" alt="" className="fixed inset-0 w-full h-full object-cover pointer-events-none z-0" />
 
       {/* Sidebar - Desktop */}
       <aside className="hidden md:flex md:w-60 md:flex-col md:fixed md:inset-y-0 border-r border-border/30 bg-zinc-950/20 backdrop-blur-xl z-20">
