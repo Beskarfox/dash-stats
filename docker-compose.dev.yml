@@ -17,7 +17,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       - API_KEY=${API_KEY:-your-secret-key}
-    command: uvicorn main:app --reload --host 0.0.0.0 --port 8000
+      - WATCHFILES_FORCE_POLLING=true
+    command: uvicorn main:app --reload --reload-exclude "data/*" --reload-exclude "*.db" --host 0.0.0.0 --port 8000
     restart: always
     networks:
       - proxy
@@ -40,7 +41,8 @@ services:
       - BACKEND_API_URL=http://stats-server-staging:8000
       - NODE_ENV=development
       - ALLOWED_DEV_ORIGINS=${ALLOWED_DEV_ORIGINS:-dev.beskarfox.com,stats.staging.beskarfox.com,localhost,127.0.0.1}
-    command: npm run dev
+      - WATCHPACK_POLLING=true
+    command: npm run dev -- --webpack
     depends_on:
       - server
     restart: always

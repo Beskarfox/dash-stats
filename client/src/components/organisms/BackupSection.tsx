@@ -135,7 +135,7 @@ export const BackupSection = ({ status, loading }: BackupSectionProps) => {
           return (
             <Card 
               key={srv}
-              className="relative overflow-hidden glass-card-blended ring-0 bg-card/40 backdrop-blur-xl border border-white/5 shadow-xl p-6 flex flex-col justify-between"
+              className="relative overflow-hidden glass-card-blended ring-0 bg-card/40 backdrop-blur-xl  shadow-xl p-6 flex flex-col justify-between"
               style={{ "--glow": cfg.glow } as React.CSSProperties}
             >
               <div>
@@ -220,7 +220,7 @@ export const BackupSection = ({ status, loading }: BackupSectionProps) => {
       <div className="pt-8 space-y-6">
         <h3 className="font-poppins text-2xl font-bold tracking-tight text-zinc-400 ml-1">Historique</h3>
 
-        <Card className="glass-card-blended ring-0 bg-card/40 backdrop-blur-xl border border-white/5 shadow-xl overflow-hidden p-0 gap-0 py-0 flex flex-col">
+        <Card className="glass-card-blended ring-0 bg-card/40 backdrop-blur-xl  shadow-xl overflow-hidden p-0 gap-0 py-0 flex flex-col">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -316,7 +316,7 @@ export const BackupSection = ({ status, loading }: BackupSectionProps) => {
           </div>
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-5 py-4 border-t border-white/5 bg-zinc-950/20 text-xs text-muted-foreground">
+            <div className="flex items-center justify-between px-5 py-4 border-t border-white/5 bg-black/10 text-xs text-muted-foreground">
               <span>
                 Page <strong className="text-zinc-300 font-semibold">{currentPage}</strong> sur <strong className="text-zinc-300 font-semibold">{totalPages}</strong>
               </span>
@@ -324,14 +324,14 @@ export const BackupSection = ({ status, loading }: BackupSectionProps) => {
                 <button
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
-                  className="px-3 py-1.5 rounded-lg border border-white/5 bg-zinc-900/40 text-zinc-300 hover:bg-zinc-900 hover:text-foreground transition-all duration-200 disabled:opacity-40 disabled:hover:text-zinc-300 disabled:cursor-not-allowed select-none cursor-pointer font-medium"
+                  className="px-3 py-1.5 rounded-lg  bg-zinc-900/40 text-zinc-300 hover:bg-zinc-900 hover:text-foreground transition-all duration-200 disabled:opacity-40 disabled:hover:text-zinc-300 disabled:cursor-not-allowed select-none cursor-pointer font-medium"
                 >
                   Précédent
                 </button>
                 <button
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1.5 rounded-lg border border-white/5 bg-zinc-900/40 text-zinc-300 hover:bg-zinc-900 hover:text-foreground transition-all duration-200 disabled:opacity-40 disabled:hover:text-zinc-300 disabled:cursor-not-allowed select-none cursor-pointer font-medium"
+                  className="px-3 py-1.5 rounded-lg  bg-zinc-900/40 text-zinc-300 hover:bg-zinc-900 hover:text-foreground transition-all duration-200 disabled:opacity-40 disabled:hover:text-zinc-300 disabled:cursor-not-allowed select-none cursor-pointer font-medium"
                 >
                   Suivant
                 </button>

@@ -10,7 +10,8 @@ import {
   Pause,
   RefreshCw,
   Wifi,
-  FileText
+  FileText,
+  Loader2
 } from "lucide-react";
 
 interface MinecraftSectionProps {
@@ -47,14 +48,14 @@ export const MinecraftSection = ({ status, loading, onRefresh }: MinecraftSectio
   if (!status && loading) {
     return (
       <div className="flex items-center justify-center p-12">
-        <RefreshCw className="h-8 w-8 animate-spin text-violet-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-violet-400" />
       </div>
     );
   }
 
   if (!status) {
     return (
-      <Card className="glass-card-blended bg-card/40 backdrop-blur-xl border border-white/5 p-6 text-center text-muted-foreground">
+      <Card className="glass-card-blended bg-card/40 backdrop-blur-xl p-6 text-center text-muted-foreground">
         Impossible de charger les statistiques Minecraft.
       </Card>
     );
@@ -153,16 +154,16 @@ export const MinecraftSection = ({ status, loading, onRefresh }: MinecraftSectio
       <div className="xl:col-span-1 flex flex-col gap-6">
         
         {/* Status Card */}
-        <Card className="relative overflow-hidden glass-card-blended ring-0 bg-card/40 backdrop-blur-xl border border-white/5 shadow-xl p-6">
+        <Card className="relative overflow-hidden glass-card-blended ring-0 bg-card/40 backdrop-blur-xl shadow-xl p-6">
           <div 
             className="absolute top-0 right-0 w-32 h-32 rounded-full blur-[60px] pointer-events-none -z-10 transition-all duration-500" 
             style={{ 
               backgroundColor: status.online ? "rgba(16, 185, 129, 0.12)" : "rgba(239, 68, 68, 0.12)" 
             }}
           />
-          <div className="flex items-start gap-4 mb-3 bg-black/40 p-3 rounded-xl border border-white/5 shadow-inner">
+          <div className="flex items-start gap-4 mb-3 bg-black/40 p-3 rounded-xl shadow-inner">
             {/* Server Icon */}
-            <div className="w-16 h-16 shrink-0 bg-black/60 border border-white/10 rounded-md overflow-hidden flex items-center justify-center">
+            <div className="w-16 h-16 shrink-0 bg-black/60 rounded-md overflow-hidden flex items-center justify-center">
               {status.favicon ? (
                 <img src={status.favicon} alt="Server Icon" className="w-full h-full object-cover" />
               ) : (
@@ -189,7 +190,7 @@ export const MinecraftSection = ({ status, loading, onRefresh }: MinecraftSectio
             </div>
           </div>
 
-          <div className="bg-black/20 border border-white/5 rounded-xl py-1">
+          <div className="bg-black/20  rounded-xl py-1">
             {/* Status indicator */}
             <div className="flex items-center justify-between py-2 px-3">
               <span className="text-xs font-semibold text-muted-foreground/50">Statut</span>
@@ -229,7 +230,7 @@ export const MinecraftSection = ({ status, loading, onRefresh }: MinecraftSectio
         </Card>
 
         {/* Players Card */}
-        <Card className="flex-1 glass-card-blended ring-0 bg-card/40 backdrop-blur-xl border border-white/5 shadow-xl p-6 flex flex-col">
+        <Card className="flex-1 glass-card-blended ring-0 bg-card/40 backdrop-blur-xl  shadow-xl p-6 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2 text-foreground/90 font-bold">
               <Users className="h-4 w-4 text-violet-400" />
@@ -247,9 +248,9 @@ export const MinecraftSection = ({ status, loading, onRefresh }: MinecraftSectio
                 {status.players_list.slice().sort((a, b) => a.localeCompare(b)).map((player) => (
                   <div 
                     key={player}
-                    className="flex items-center gap-3 p-2.5 rounded-xl bg-black/10 border border-white/5 hover:border-white/10 hover:bg-black/20 transition-all duration-150"
+                    className="flex items-center gap-3 p-2.5 rounded-xl bg-black/10 hover:bg-black/20 transition-all duration-150"
                   >
-                    <div className="h-8 w-8 rounded-lg overflow-hidden shrink-0 border border-white/10 bg-zinc-900 flex items-center justify-center">
+                    <div className="h-8 w-8 rounded-lg overflow-hidden shrink-0 bg-zinc-900 flex items-center justify-center">
                       <img 
                         src={`https://mc-heads.net/avatar/${player}/32`}
                         alt={`${player} head`}
@@ -280,15 +281,15 @@ export const MinecraftSection = ({ status, loading, onRefresh }: MinecraftSectio
 
       {/* RIGHT COLUMN: Interactive Console/Logs */}
       <div className="xl:col-span-2 flex">
-        <Card className="flex-grow glass-card-blended ring-0 bg-card/40 backdrop-blur-xl border border-white/5 shadow-xl flex flex-col overflow-hidden gap-0 py-0">
+        <Card className="flex-grow glass-card-blended ring-0 bg-card/40 backdrop-blur-xl  shadow-xl flex flex-col overflow-hidden gap-0 py-0">
           {/* Console Header */}
-          <div className="px-4 py-3 sm:px-5 border-b border-white/5 bg-zinc-950/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+          <div className="px-4 py-3 sm:px-5 border-b border-white/5 bg-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
             {/* Left Title and Badge + Play/Pause in a row on mobile */}
             <div className="flex items-center justify-between w-full sm:w-auto">
               <div className="flex items-center gap-2.5 shrink-0">
                 <Terminal className="h-4 w-4 text-violet-400" />
                 <h3 className="font-bold text-sm tracking-wide text-foreground/80">Console</h3>
-                <span className="text-[10px] text-muted-foreground/50 font-mono bg-black/30 border border-white/5 px-2 py-0.5 rounded-md">
+                <span className="text-[10px] text-muted-foreground/50 font-mono bg-black/30  px-2 py-0.5 rounded-md">
                   {filteredLogs.length !== pausedLogs.length ? `${filteredLogs.length}/` : ""}{pausedLogs.length} lignes
                 </span>
               </div>
@@ -309,7 +310,7 @@ export const MinecraftSection = ({ status, loading, onRefresh }: MinecraftSectio
                   placeholder="Rechercher..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-7 pr-2.5 py-1 text-xs rounded-lg border border-white/5 bg-black/20 text-foreground placeholder-muted-foreground/40 focus:outline-none focus:border-violet-500/30 transition-all font-mono"
+                  className="w-full pl-7 pr-2.5 py-1 text-xs rounded-lg  bg-black/20 text-foreground placeholder-muted-foreground/40 focus:outline-none focus:border-violet-500/30 transition-all font-mono"
                 />
               </div>
 

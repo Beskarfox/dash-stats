@@ -176,7 +176,7 @@ export const ServicesSection = ({ latest }: ServicesSectionProps) => {
     return (
       <Card
         key={service.name}
-        className="relative overflow-hidden glass-card-blended ring-0 bg-card/40 backdrop-blur-xl transition-shadow duration-150 ease-out shadow-xl hover:shadow-[0_0_20px_var(--glow)] group p-6 flex flex-col justify-between"
+        className="relative overflow-hidden glass-card-blended ring-0 bg-card/40 backdrop-blur-xl transition-shadow duration-150 ease-out shadow-xl group p-6 flex flex-col justify-between"
         style={{ "--glow": service.glowColor } as React.CSSProperties}
       >
         <div>
@@ -222,7 +222,7 @@ export const ServicesSection = ({ latest }: ServicesSectionProps) => {
                 </div>
               </>
             ) : (
-              <div className="col-span-2 flex items-center justify-center p-6 rounded-xl bg-black/20 border border-white/5 text-xs text-muted-foreground/50 font-medium text-center">
+              <div className="col-span-2 flex items-center justify-center p-6 rounded-xl bg-black/20  text-xs text-muted-foreground/50 font-medium text-center">
                 TODO
               </div>
             )}

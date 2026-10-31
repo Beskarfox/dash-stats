@@ -157,7 +157,7 @@ export default function Home() {
           style={{ filter: "sepia(1) saturate(5) hue-rotate(230deg)" }}
         />
       </div>
-      <h1 className="text-xl tracking-tight text-violet-300 font-bold font-poppins">
+      <h1 className="text-xl tracking-tight text-violet-300 font-poppins">
         Dashboard
       </h1>
       {(loading || (activeTab === "minecraft" && minecraftLoading) || (activeTab === "backups" && backupsLoading)) && (
@@ -167,7 +167,7 @@ export default function Home() {
   );
 
   const historyToolbar = (
-    <div className="flex bg-zinc-900/60 p-1 rounded-xl border border-white/5 backdrop-blur-md shrink-0">
+    <div className="flex bg-white/5 p-1 rounded-xl backdrop-blur-md shrink-0">
       {(["all", "30d", "7d", "24h"] as const).map((range) => {
         const labels = {
           "24h": "24 heures",
@@ -194,7 +194,7 @@ export default function Home() {
 
   if (!isMounted) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
+      <div className="flex min-h-screen items-center justify-center bg-[#16141c] text-foreground">
         <Loader2 className="h-8 w-8 animate-spin text-violet-400" />
       </div>
     );
