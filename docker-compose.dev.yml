@@ -6,6 +6,8 @@ services:
     hostname: stats-server-staging
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     volumes:
       - ./server:/app
       - ./server/data:/app/data
