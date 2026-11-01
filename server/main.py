@@ -121,6 +121,16 @@ async def backup_worker():
             
             # Check backups status for each service
             for service in ["minecraft", "outline", "nextcloud"]:
+                # Skip backups for services with retention set to 0 (disabled)
+                service_limits = {
+                    "minecraft": settings.MAX_BACKUPS_MINECRAFT,
+                    "outline": settings.MAX_BACKUPS_OUTLINE,
+                    "nextcloud": settings.MAX_BACKUPS_NEXTCLOUD,
+                }
+                if service_limits.get(service, 1) == 0:
+                    print(f"{service} backups disabled (MAX_BACKUPS_{service.upper()}=0). Skipping.")
+                    continue
+
                 latest = status[service]["latest_backup"]
                 needs_backup = False
                 

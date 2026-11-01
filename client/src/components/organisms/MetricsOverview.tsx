@@ -169,18 +169,18 @@ export const MetricsOverview = ({ latest, backupsStatus }: MetricsOverviewProps)
           {/* CPU Card */}
           <MetricCard
             title="CPU"
+            titleExtra={`${latest.cpu_temp}°C`}
             subTitle={latest.cpu_name || "Processeur"}
             value={latest.cpu_usage}
             unit="%"
             icon={<Cpu className="h-6 w-6" />}
-            description={`Température : ${latest.cpu_temp}°C`}
             color="blue"
             variant="circle"
             className="md:col-span-2"
           />
 
           {/* RAM Service breakdown Donut Card */}
-          <Card className="relative overflow-hidden glass-card-blended ring-0 bg-card/40 shadow-xl backdrop-blur-xl transition-shadow duration-150 ease-out hover:shadow-[0_0_20px_rgba(255,44,76,0.18)] group p-5 md:col-span-3">
+          <Card className="relative overflow-hidden glass-card-blended ring-0 bg-card/40 shadow-xl backdrop-blur-xl transition-shadow duration-150 ease-out group p-5 md:col-span-3">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6 z-10 relative">
               {/* Left Details & Legend */}
               <div className="flex-1 flex flex-col gap-4 w-full">
@@ -270,7 +270,7 @@ export const MetricsOverview = ({ latest, backupsStatus }: MetricsOverviewProps)
         <div className="flex flex-col gap-4">
 
           {/* NVMe SSD Service breakdown Donut Card */}
-          <Card className="relative overflow-hidden glass-card-blended ring-0 bg-card/40 shadow-xl backdrop-blur-xl transition-shadow duration-150 ease-out hover:shadow-[0_0_20px_rgba(249,74,41,0.12)] group p-5">
+          <Card className="relative overflow-hidden glass-card-blended ring-0 bg-card/40 shadow-xl backdrop-blur-xl transition-shadow duration-150 ease-out group p-5">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6 z-10 relative">
               {/* Left Details & Legend */}
               <div className="flex-1 flex flex-col gap-4 w-full">
@@ -359,7 +359,7 @@ export const MetricsOverview = ({ latest, backupsStatus }: MetricsOverviewProps)
           </Card>
 
           {/* SSD SATA Backup Donut Card */}
-          <Card className="relative overflow-hidden glass-card-blended ring-0 bg-card/40 shadow-xl backdrop-blur-xl transition-shadow duration-150 ease-out hover:shadow-[0_0_20px_rgba(245,158,11,0.12)] group p-5">
+          <Card className="relative overflow-hidden glass-card-blended ring-0 bg-card/40 shadow-xl backdrop-blur-xl transition-shadow duration-150 ease-out group p-5">
             <div className="flex flex-col md:flex-row items-center justify-between gap-6 z-10 relative">
               {/* Left Details & Legend */}
               <div className="flex-1 flex flex-col gap-4 w-full">

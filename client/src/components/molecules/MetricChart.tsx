@@ -137,7 +137,7 @@ export const MetricChart = ({ title, data, dataKey, color = "#2563eb", unit = ""
       } catch (e) {}
 
       return (
-        <div className="flex flex-col gap-2 rounded-xl py-2.5 px-3.5 text-xs text-card-foreground glass-card-blended shadow-xl border border-white/10 bg-card/40 backdrop-blur-xl">
+        <div className="flex flex-col gap-2 rounded-xl py-2.5 px-3.5 text-xs text-card-foreground glass-card-blended shadow-xl bg-card/40 backdrop-blur-xl">
           <p className="font-medium text-muted-foreground/80">{formattedLabel}</p>
           <p className="font-extrabold text-foreground text-sm flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full inline-block animate-pulse" style={{ backgroundColor: color }} />
@@ -159,7 +159,7 @@ export const MetricChart = ({ title, data, dataKey, color = "#2563eb", unit = ""
       } catch (e) {}
 
       return (
-        <div className="flex flex-col gap-2 rounded-xl py-2.5 px-3.5 text-xs text-card-foreground glass-card-blended shadow-xl border border-white/10 bg-card/40 backdrop-blur-xl">
+        <div className="flex flex-col gap-2 rounded-xl py-2.5 px-3.5 text-xs text-card-foreground glass-card-blended shadow-xl bg-card/40 backdrop-blur-xl">
           <p className="font-medium text-muted-foreground/80">{formattedLabel}</p>
           <p className="font-extrabold text-foreground text-sm flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full inline-block animate-pulse" style={{ backgroundColor: color }} />
@@ -174,7 +174,7 @@ export const MetricChart = ({ title, data, dataKey, color = "#2563eb", unit = ""
 
   if (!isMounted) {
     return (
-      <Card className="col-span-1 rounded-xl border border-white/10 bg-card/40 transition-all duration-300 shadow-xl animate-pulse">
+      <Card className="col-span-1 rounded-xl bg-card/40 transition-all duration-300 shadow-xl animate-pulse">
         <CardHeader className="pb-4">
           <CardTitle className="text-xs font-semibold tracking-wider text-muted-foreground/80 uppercase">{title}</CardTitle>
         </CardHeader>
@@ -189,7 +189,7 @@ export const MetricChart = ({ title, data, dataKey, color = "#2563eb", unit = ""
 
   return (
     <>
-      <Card className="col-span-1 rounded-xl border border-white/10 bg-card/40 transition-all duration-300 shadow-xl group relative overflow-hidden">
+      <Card className="col-span-1 rounded-xl bg-card/40 transition-all duration-300 shadow-xl group relative overflow-hidden">
         <CardHeader className="pb-4 flex flex-row items-center justify-between space-y-0 relative z-20">
           <CardTitle className="text-xs font-semibold tracking-wider text-muted-foreground/80 uppercase select-none">{title}</CardTitle>
           <button
@@ -197,7 +197,7 @@ export const MetricChart = ({ title, data, dataKey, color = "#2563eb", unit = ""
               e.stopPropagation();
               setIsModalOpen(true);
             }}
-            className="p-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-muted-foreground hover:text-foreground cursor-pointer flex items-center justify-center shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200 relative z-30"
+            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-foreground cursor-pointer flex items-center justify-center shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200 relative z-30"
             title="Agrandir le graphique"
           >
             <ZoomIn className="h-3.5 w-3.5" />
@@ -279,14 +279,14 @@ export const MetricChart = ({ title, data, dataKey, color = "#2563eb", unit = ""
             }`}
           >
             {/* Glassy Background (avoids nested backdrop-filter issue) */}
-            <div className="absolute inset-0 bg-card/40 backdrop-blur-2xl border border-white/10 rounded-2xl -z-10 pointer-events-none" />
+            <div className="absolute inset-0 bg-card/40 backdrop-blur-2xl rounded-2xl -z-10 pointer-events-none" />
             {/* Close Button */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 closeModal();
               }}
-              className="absolute top-4 right-4 p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/15 text-muted-foreground hover:text-foreground cursor-pointer transition-all flex items-center justify-center z-50"
+              className="absolute top-4 right-4 p-2 rounded-xl bg-white/5 hover:bg-white/15 text-muted-foreground hover:text-foreground cursor-pointer transition-all flex items-center justify-center z-50"
               title="Fermer"
             >
               <X className="h-5 w-5" />
@@ -304,7 +304,7 @@ export const MetricChart = ({ title, data, dataKey, color = "#2563eb", unit = ""
               </div>
 
               {/* Zoom Controls */}
-              <div className="flex items-center gap-2 bg-zinc-900/60 p-1 rounded-xl border border-white/5 backdrop-blur-md">
+              <div className="flex items-center gap-2 bg-zinc-900/60 p-1 rounded-xl backdrop-blur-md">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

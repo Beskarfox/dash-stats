@@ -3,6 +3,7 @@ import { ReactNode } from "react";
 
 interface MetricCardProps {
   title: ReactNode;
+  titleExtra?: string;
   subTitle?: string;
   value: string | number;
   unit?: string;
@@ -15,6 +16,7 @@ interface MetricCardProps {
 
 export const MetricCard = ({
   title,
+  titleExtra,
   subTitle,
   value,
   unit,
@@ -32,37 +34,37 @@ export const MetricCard = ({
       bar: "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]",
       stroke: "stroke-blue-500 drop-shadow-[0_0_4px_rgba(59,130,246,0.4)]",
       iconColor: "text-blue-400",
-      cardStyle: "hover:shadow-[0_0_20px_rgba(59,130,246,0.12)]",
+      cardStyle: "",
     },
     red: {
       bar: "bg-[#ff2c4c] shadow-[0_0_8px_rgba(255,44,76,0.5)]",
       stroke: "stroke-[#ff2c4c] drop-shadow-[0_0_4px_rgba(255,44,76,0.4)]",
       iconColor: "text-[#ff2c4c]",
-      cardStyle: "hover:shadow-[0_0_20px_rgba(255,44,76,0.18)]",
+      cardStyle: "",
     },
     orange: {
       bar: "bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]",
       stroke: "stroke-orange-500 drop-shadow-[0_0_4px_rgba(249,115,22,0.4)]",
       iconColor: "text-orange-400",
-      cardStyle: "hover:shadow-[0_0_20px_rgba(249,115,22,0.12)]",
+      cardStyle: "",
     },
     yellow: {
       bar: "bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.5)]",
       stroke: "stroke-yellow-500 drop-shadow-[0_0_4px_rgba(234,179,8,0.5)]",
       iconColor: "text-yellow-400",
-      cardStyle: "hover:shadow-[0_0_20px_rgba(234,179,8,0.12)]",
+      cardStyle: "",
     },
     "yellow-muted": {
       bar: "bg-yellow-500/60 shadow-[0_0_6px_rgba(234,179,8,0.3)]",
       stroke: "stroke-yellow-500/60 drop-shadow-[0_0_3px_rgba(234,179,8,0.3)]",
       iconColor: "text-yellow-400/60",
-      cardStyle: "hover:shadow-[0_0_15px_rgba(234,179,8,0.06)]",
+      cardStyle: "",
     },
     indigo: {
       bar: "bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]",
       stroke: "stroke-indigo-500 drop-shadow-[0_0_4px_rgba(99,102,241,0.4)]",
       iconColor: "text-indigo-400",
-      cardStyle: "hover:shadow-[0_0_20px_rgba(99,102,241,0.12)]",
+      cardStyle: "",
     },
   };
 
@@ -100,9 +102,16 @@ export const MetricCard = ({
                 </div>
               )}
               <div className="flex flex-col">
+              <div className="flex items-center gap-2">
                 <CardTitle className="text-base font-bold tracking-wide text-foreground/90">{title}</CardTitle>
-                {subTitle && <span className="text-sm text-muted-foreground/55 font-semibold -mt-0.5">{subTitle}</span>}
+                {titleExtra && (
+                  <span className="text-sm font-semibold text-muted-foreground/55 select-none ml-1">
+                    {titleExtra}
+                  </span>
+                )}
               </div>
+              {subTitle && <span className="text-sm text-muted-foreground/55 font-semibold -mt-0.5">{subTitle}</span>}
+            </div>
             </div>
 
             {description && (
@@ -155,7 +164,14 @@ export const MetricCard = ({
           </div>
         )}
         <div className="flex flex-col">
+          <div className="flex items-center gap-2">
           <CardTitle className="text-base font-bold tracking-wide text-foreground/90">{title}</CardTitle>
+          {titleExtra && (
+            <span className="text-sm font-semibold text-muted-foreground/55 select-none ml-1">
+              {titleExtra}
+            </span>
+          )}
+        </div>
           {subTitle && <span className="text-sm text-muted-foreground/55 font-semibold -mt-0.5">{subTitle}</span>}
         </div>
       </CardHeader>

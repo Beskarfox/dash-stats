@@ -16,7 +16,7 @@ PORT_CLIENT = 3000
 API_KEY ?= your-secret-key
 
 # Shell configurations
-.PHONY: help install run-server run-client run-dev docker-up docker-down docker-logs send-mock clean
+.PHONY: help install run-server run-client run-dev dev docker-up docker-down docker-logs send-mock clean
 
 # Colors for terminal output
 YELLOW = \033[1;33m
@@ -31,6 +31,7 @@ help:
 	@echo "  $(CYAN)make run-server$(RESET)  - Run the backend FastAPI server locally (with hot reload)"
 	@echo "  $(CYAN)make run-client$(RESET)  - Run the Next.js frontend client locally in development mode"
 	@echo "  $(CYAN)make run-dev$(RESET)     - Run both client and server locally in parallel"
+	@echo "  $(CYAN)make dev$(RESET)          - Start Docker containers (dev) in background, without rebuilding"
 	@echo "  $(CYAN)make docker-up$(RESET)    - Build and start Docker containers for client and server in background (dev)"
 	@echo "  $(CYAN)make docker-down$(RESET)  - Stop and remove Docker containers (dev)"
 	@echo "  $(CYAN)make docker-logs$(RESET)  - View and follow Docker container logs (dev)"
@@ -70,6 +71,10 @@ run-dev:
 	@make -j 2 run-server run-client
 
 # 3. Docker Compose operations
+dev:
+	@echo "$(GREEN)--> Starting Docker containers (dev)...$(RESET)"
+	docker compose -f docker-compose.dev.yml up -d
+
 docker-up:
 	@echo "$(GREEN)--> Building and starting Docker containers...$(RESET)"
 	docker compose -f docker-compose.dev.yml up -d --build
