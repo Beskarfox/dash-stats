@@ -50,6 +50,7 @@ export interface BackupDbStatus {
 export interface BackupServiceStatus {
   latest_backup: BackupItem | null;
   total_backups_count: number;
+  max_backups: number;
   db_status?: BackupDbStatus | null;
 }
 

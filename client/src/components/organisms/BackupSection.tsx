@@ -104,19 +104,6 @@ export const BackupSection = ({ status, loading }: BackupSectionProps) => {
     }
   };
 
-  const getServiceLimit = (serviceName: string) => {
-    switch (serviceName.toLowerCase()) {
-      case "nextcloud":
-        return 1;
-      case "minecraft":
-        return 3;
-      case "outline":
-        return 5;
-      default:
-        return 3;
-    }
-  };
-
   const services = ["minecraft", "outline", "nextcloud"];
 
   const ITEMS_PER_PAGE = 10;
@@ -193,7 +180,7 @@ export const BackupSection = ({ status, loading }: BackupSectionProps) => {
                       <span>Total d'archives stockées</span>
                     </div>
                     <span className="text-xs font-bold text-foreground/80 font-mono">
-                      {srvStatus ? `${srvStatus.total_backups_count} / ${getServiceLimit(srv)}` : `0 / ${getServiceLimit(srv)}`}
+                      {srvStatus ? `${srvStatus.total_backups_count} / ${srvStatus.max_backups}` : `0 / 0`}
                     </span>
                   </div>
                 </div>
