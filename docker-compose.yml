@@ -6,6 +6,8 @@ services:
       dockerfile: Dockerfile
     image: stats-server
     container_name: stats-server
+    env_file:
+      - .env
     volumes:
       - ./server-data:/app/data
       - /mnt/backup:/mnt/backup

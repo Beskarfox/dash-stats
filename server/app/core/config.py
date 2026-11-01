@@ -20,9 +20,9 @@ class Settings(BaseSettings):
     BACKUP_AGE_THRESHOLD_SECONDS: int = int(os.getenv("BACKUP_AGE_THRESHOLD_SECONDS", "604800"))
 
     # Retention limits (number of archives to keep). Set to 0 to disable backups for a service.
-    MAX_BACKUPS_NEXTCLOUD: int = int(os.getenv("MAX_BACKUPS_NEXTCLOUD", "1"))
-    MAX_BACKUPS_MINECRAFT: int = int(os.getenv("MAX_BACKUPS_MINECRAFT", "3"))
-    MAX_BACKUPS_OUTLINE: int = int(os.getenv("MAX_BACKUPS_OUTLINE", "5"))
+    MAX_BACKUPS_NEXTCLOUD: int = int(os.getenv("MAX_BACKUPS_NEXTCLOUD", "0"))
+    MAX_BACKUPS_MINECRAFT: int = int(os.getenv("MAX_BACKUPS_MINECRAFT", "0"))
+    MAX_BACKUPS_OUTLINE: int = int(os.getenv("MAX_BACKUPS_OUTLINE", "0"))
 
     # Minecraft Server settings
     MINECRAFT_HOST: str = os.getenv("MINECRAFT_HOST", "minecraft-paper")
