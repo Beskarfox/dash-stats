@@ -43,9 +43,12 @@ export default function Home() {
     }
   };
 
-  const fetchHistoryData = async () => {
+  const fetchHistoryData = async (timeRange: "24h" | "7d" | "30d" | "all" = "all") => {
     try {
-      const historyData = await metricsService.getHistory(300);
+      // Récupérer beaucoup plus de points quand on veut tout voir,
+      // sinon le filtre "Tout" est limité aux 300 derniers enregistrements (~2 jours selon la fréquence de collecte)
+      const limit = timeRange === "all" ? 10000 : 300;
+      const historyData = await metricsService.getHistory(limit);
       setHistory(historyData);
     } catch (err) {
       console.error("Failed to fetch history metrics:", err);
@@ -104,14 +107,14 @@ export default function Home() {
   useEffect(() => {
     if (isMounted) {
       if (activeTab === "history") {
-        fetchHistoryData();
+        fetchHistoryData(timeRange);
       } else if (activeTab === "minecraft") {
         fetchMinecraftData(true);
       } else if (activeTab === "backups") {
         fetchBackupsData(true);
       }
     }
-  }, [activeTab, isMounted]);
+  }, [activeTab, timeRange, isMounted]);
 
   // Poll for data: poll latest every 5s, poll history every 30s if on history tab, poll minecraft every 5s if active
   useEffect(() => {
@@ -122,7 +125,7 @@ export default function Home() {
 
       const intervalHistory = setInterval(() => {
         if (activeTab === "history") {
-          fetchHistoryData();
+          fetchHistoryData(timeRange);
         }
       }, 30000);
 

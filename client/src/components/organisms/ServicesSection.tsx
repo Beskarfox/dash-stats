@@ -182,7 +182,7 @@ export const ServicesSection = ({ latest }: ServicesSectionProps) => {
         <div>
           {/* Header Block */}
           <div className="flex items-start gap-4 mb-6">
-            <div className={`p-2.5 rounded-xl shrink-0 ${service.iconBg}`}>
+            <div className="p-2.5 rounded-xl shrink-0">
               {service.icon}
             </div>
             <div className="flex flex-col">

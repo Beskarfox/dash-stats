@@ -382,7 +382,8 @@ class SystemMetricsCollector:
         try:
             import urllib.request
             import json
-            req = urllib.request.Request("http://127.0.0.1:11434/api/ps")
+            ollama_url = os.getenv("OLLAMA_API_URL", "http://host.docker.internal:11434")
+            req = urllib.request.Request(f"{ollama_url}/api/ps")
             with urllib.request.urlopen(req, timeout=0.5) as resp:
                 if resp.status == 200:
                     data = json.loads(resp.read().decode("utf-8"))
