@@ -111,13 +111,21 @@ def read_backups_history(db: Session = Depends(get_db)):
 @router.post("/backups/run")
 def trigger_backup(request: schemas.BackupTriggerRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db), api_key: str = Depends(verify_api_key)):
     manager = BackupManager(db)
+    service_limits = {
+        "minecraft": settings.MAX_BACKUPS_MINECRAFT,
+        "outline": settings.MAX_BACKUPS_OUTLINE,
+        "nextcloud": settings.MAX_BACKUPS_NEXTCLOUD,
+    }
     if request.service == "all":
-        for s in ["minecraft", "outline", "nextcloud"]:
+        services = [s for s in ["minecraft", "outline", "nextcloud"] if service_limits.get(s, 1) != 0]
+        for s in services:
             background_tasks.add_task(manager.run_backup, s)
         return {"status": "success", "message": "Backups queued for all services"}
     else:
         if request.service not in ["minecraft", "outline", "nextcloud"]:
             raise HTTPException(status_code=400, detail=f"Invalid service name: {request.service}")
+        if service_limits.get(request.service, 1) == 0:
+            raise HTTPException(status_code=400, detail=f"{request.service} backups are disabled (MAX_BACKUPS_{request.service.upper()}=0)")
         background_tasks.add_task(manager.run_backup, request.service)
         return {"status": "success", "message": f"Backup queued for {request.service}"}
 
