@@ -4,7 +4,9 @@ import subprocess
 import json
 from datetime import datetime
 from typing import List, Dict, Any, Optional
+import os
 from sqlalchemy.orm import Session
+from app.core.config import settings
 from app.infrastructure.db.backup_repository import BackupLogsRepository
 from app.domain.models import BackupLogDomain
 
@@ -115,6 +117,7 @@ class BackupManager:
             status[service] = {
                 "latest_backup": physical_backups[0] if physical_backups else None,
                 "total_backups_count": len(physical_backups),
+                "max_backups": int(getattr(settings, f"MAX_BACKUPS_{service.upper()}", 0)),
                 "db_status": {
                     "status": latest_db_log.status if latest_db_log else "unknown",
                     "timestamp": latest_db_log.timestamp.isoformat() if latest_db_log and latest_db_log.timestamp else None,

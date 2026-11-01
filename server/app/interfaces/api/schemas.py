@@ -55,6 +55,7 @@ class BackupItem(BaseModel):
 class BackupServiceStatus(BaseModel):
     latest_backup: Optional[BackupItem] = None
     total_backups_count: int
+    max_backups: int = 0
 
 class BackupsStatusResponse(BaseModel):
     minecraft: BackupServiceStatus
