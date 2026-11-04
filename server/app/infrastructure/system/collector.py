@@ -39,7 +39,7 @@ class SystemMetricsCollector:
                                 return line.split(":")[1].strip()
         except Exception:
             pass
-        return platform.processor() or "Intel Core Processor"
+        return platform.processor() or ""
 
     @staticmethod
     def query_docker_socket(path: str):
@@ -51,7 +51,7 @@ class SystemMetricsCollector:
             return None
         try:
             s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            s.settimeout(2.0)
+            s.settimeout(10.0)
             s.connect(socket_path)
             request = f"GET {path} HTTP/1.0\r\nHost: localhost\r\n\r\n"
             s.sendall(request.encode('utf-8'))
@@ -425,7 +425,7 @@ class SystemMetricsCollector:
         try:
             return socket.gethostname()
         except Exception:
-            return "host-machine"
+            return ""
 
     @staticmethod
     def get_cpu_temp(cpu_usage: float) -> float:
@@ -542,7 +542,7 @@ class SystemMetricsCollector:
                 return "actif depuis moins d'une minute"
             return "actif depuis " + ", ".join(parts)
         except Exception:
-            return "actif depuis durée inconnue"
+            return ""
 
     @classmethod
     def get_rapl_energy(cls):
@@ -640,8 +640,8 @@ class SystemMetricsCollector:
             disk_total_gb = round(disk_nvme.total / (1024 ** 3), 1)
             disk_usage_gb = round(disk_nvme.used / (1024 ** 3), 1)
         except Exception:
-            disk_total_gb = 250.0
-            disk_usage_gb = 85.0
+            disk_total_gb = 0.0
+            disk_usage_gb = 0.0
 
         # Services sizes breakdown on NVMe SSD
         stats_path = '/opt/stats'
@@ -778,8 +778,8 @@ class SystemMetricsCollector:
         grouped_breakdown["Autres"] = autres_size
         disk_services_json = json.dumps(grouped_breakdown)
 
-        disk_sata_total_gb = 480.0
-        disk_sata_usage_gb = 120.0
+        disk_sata_total_gb = 0.0
+        disk_sata_usage_gb = 0.0
         try:
             sata_path = None
             if os.path.exists('/mnt/backup'):
@@ -811,9 +811,9 @@ class SystemMetricsCollector:
             ram_usage_mb = round(mem.used / (1024 ** 2), 1)
             ram_usage_percent = round(mem.percent, 2)
         except Exception:
-            ram_total_mb = 8192.0
-            ram_usage_mb = 2048.0
-            ram_usage_percent = 25.0
+            ram_total_mb = 0.0
+            ram_usage_mb = 0.0
+            ram_usage_percent = 0.0
 
         # 6. Network stats
         try:
