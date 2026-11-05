@@ -139,26 +139,30 @@ class BackupManager:
 
         self._active_backups.add(service)
 
-        # 1. Capture the exact timestamp for both DB and folder name
-        now = datetime.utcnow()
-        timestamp_str = now.strftime("%Y%m%d_%H%M%S")
-
-        # 2. Create a DB log entry with status 'running'
-        log_domain = BackupLogDomain(
-            service=service,
-            status="running",
-            timestamp=now
-        )
-        db_log = self.repo.add(log_domain)
-        log_id = db_log.id
-
-        # 3. Free up space BEFORE creating the new backup (if limit is reached)
-        self._cleanup_old_backups(service, reserve_space=True)
-
-        # Create target folder path
-        target_dir = os.path.join(self.backup_root, service, timestamp_str)
-
+        # Everything after marking the service active runs inside try/finally, so that an
+        # error at any step (DB log, cleanup, mkdir...) always releases the service and
+        # never leaves a log stuck in 'running'.
+        log_id = None
+        target_dir = None
         try:
+            # 1. Capture the exact timestamp for both DB and folder name
+            now = datetime.utcnow()
+            timestamp_str = now.strftime("%Y%m%d_%H%M%S")
+
+            # 2. Create a DB log entry with status 'running'
+            log_domain = BackupLogDomain(
+                service=service,
+                status="running",
+                timestamp=now
+            )
+            db_log = self.repo.add(log_domain)
+            log_id = db_log.id
+
+            # 3. Free up space BEFORE creating the new backup (if limit is reached)
+            self._cleanup_old_backups(service, reserve_space=True)
+
+            # Create target folder path
+            target_dir = os.path.join(self.backup_root, service, timestamp_str)
             os.makedirs(target_dir, exist_ok=True)
             
             # 2. Execute backup commands
@@ -201,18 +205,24 @@ class BackupManager:
             error_msg = str(e)
             print(f"Error during backup of {service}: {error_msg}")
             
-            # Update DB log to 'failed'
-            self.repo.update(
-                log_id=log_id,
-                status="failed",
-                error_message=error_msg
-            )
-            
+            # Update DB log to 'failed' (if it was created). A failed DB write may have left
+            # the session unusable, so roll back first; never let this mask the original error.
+            if log_id is not None:
+                try:
+                    self.db.rollback()
+                    self.repo.update(
+                        log_id=log_id,
+                        status="failed",
+                        error_message=error_msg
+                    )
+                except Exception as db_err:
+                    print(f"Could not mark backup log {log_id} as failed: {db_err}")
+
             # Clean up target directory if empty or failed
             try:
-                if os.path.exists(target_dir) and not os.listdir(target_dir):
+                if target_dir and os.path.exists(target_dir) and not os.listdir(target_dir):
                     os.rmdir(target_dir)
-            except:
+            except OSError:
                 pass
 
             return {"status": "failed", "service": service, "error": error_msg}
