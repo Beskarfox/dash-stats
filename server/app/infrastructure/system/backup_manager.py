@@ -1,4 +1,5 @@
 import os
+import shutil
 import time
 import subprocess
 import json
@@ -12,6 +13,9 @@ from app.domain.models import BackupLogDomain
 
 class BackupManager:
     _active_backups = set()
+
+    # Margin applied to the size of the latest backup when estimating the space a new one needs
+    SPACE_MARGIN = 1.1
 
     def __init__(self, db: Session, backup_root: str = "/mnt/ssdsata/backups"):
         self.db = db
@@ -158,7 +162,9 @@ class BackupManager:
             db_log = self.repo.add(log_domain)
             log_id = db_log.id
 
-            # 3. Free up space BEFORE creating the new backup (if limit is reached)
+            # 3. Before creating the new backup: enforce the retention limit and, only if the
+            #    disk is too small to hold the new backup next to the existing ones, delete the
+            #    oldest backups of this service to make room.
             self._cleanup_old_backups(service, reserve_space=True)
 
             # Create target folder path
@@ -334,12 +340,7 @@ class BackupManager:
                     else:
                         # Delete failed, aborted or orphan directories
                         print(f"Deleting orphan/failed backup directory: {dir_path}")
-                        for root, dirs, files in os.walk(dir_path, topdown=False):
-                            for file in files:
-                                os.remove(os.path.join(root, file))
-                            for d in dirs:
-                                os.rmdir(os.path.join(root, d))
-                        os.rmdir(dir_path)
+                        shutil.rmtree(dir_path)
                 except ValueError:
                     continue
 
@@ -355,16 +356,52 @@ class BackupManager:
         elif service == "outline":
             limit = int(os.environ.get("MAX_BACKUPS_OUTLINE", 5))
 
-        if reserve_space:
-            limit = max(0, limit - 1)
-
         # Delete folders exceeding the limit
         if len(folders) > limit:
             for name, dir_path in folders[limit:]:
                 print(f"Cleaning up old backup exceeding limit ({limit}): {dir_path}")
-                for root, dirs, files in os.walk(dir_path, topdown=False):
-                    for file in files:
-                        os.remove(os.path.join(root, file))
-                    for d in dirs:
-                        os.rmdir(os.path.join(root, d))
-                os.rmdir(dir_path)
+                shutil.rmtree(dir_path)
+            folders = folders[:limit]
+
+        if reserve_space:
+            self._free_space_for_new_backup(service, folders)
+
+    def _free_space_for_new_backup(self, service: str, folders: List[tuple]):
+        """Deletes the oldest backups of `service` only while the disk lacks room for a new one.
+
+        The space needed is estimated from the size of the latest backup (plus a margin), so
+        existing backups are kept whenever the disk can hold one more. `folders` is the list of
+        (name, path) of successful backups, newest first.
+        """
+        if not folders:
+            return
+
+        needed = int(self._dir_size(folders[0][1]) * self.SPACE_MARGIN)
+        free = shutil.disk_usage(self.backup_root).free
+        if free >= needed:
+            return
+
+        print(f"Not enough space for a new {service} backup: {free} bytes free, ~{needed} bytes needed.")
+        while folders and free < needed:
+            name, dir_path = folders.pop()  # oldest first
+            if not folders:
+                print(f"WARNING: deleting the last remaining {service} backup to make room: {dir_path}. "
+                      f"If the new backup fails, no {service} backup will be left.")
+            else:
+                print(f"Deleting old backup to free space: {dir_path}")
+            shutil.rmtree(dir_path)
+            free = shutil.disk_usage(self.backup_root).free
+
+        if free < needed:
+            print(f"WARNING: still not enough space for the {service} backup "
+                  f"({free} bytes free, ~{needed} bytes needed); trying anyway.")
+
+    @staticmethod
+    def _dir_size(path: str) -> int:
+        total = 0
+        for root, _, files in os.walk(path):
+            for f in files:
+                fp = os.path.join(root, f)
+                if not os.path.islink(fp):
+                    total += os.path.getsize(fp)
+        return total
