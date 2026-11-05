@@ -26,6 +26,8 @@ class MetricsRepository:
             net_tx_mb=metric.net_tx_mb,
             uptime=metric.uptime,
             power_usage_w=metric.power_usage_w,
+            power_source=metric.power_source,
+            energy_wh=metric.energy_wh,
             disk_services_json=metric.disk_services_json,
             cpu_name=metric.cpu_name,
             ram_services_json=metric.ram_services_json

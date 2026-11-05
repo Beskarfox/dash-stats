@@ -21,7 +21,9 @@ class SystemMetricDomain:
         net_rx_mb: float = 0.0,
         net_tx_mb: float = 0.0,
         uptime: str = "unknown",
-        power_usage_w: float = 0.0,
+        power_usage_w: Optional[float] = None,
+        power_source: Optional[str] = None,
+        energy_wh: Optional[float] = None,
         disk_services_json: Optional[str] = None,
         cpu_name: Optional[str] = None,
         ram_services_json: Optional[str] = None
@@ -44,6 +46,8 @@ class SystemMetricDomain:
         self.net_tx_mb = net_tx_mb
         self.uptime = uptime
         self.power_usage_w = power_usage_w
+        self.power_source = power_source
+        self.energy_wh = energy_wh
         self.disk_services_json = disk_services_json
         self.cpu_name = cpu_name
         self.ram_services_json = ram_services_json
