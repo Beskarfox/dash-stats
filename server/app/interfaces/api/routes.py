@@ -23,21 +23,8 @@ async def verify_api_key(x_api_key: str = Header(...)):
 @router.post("/metrics", response_model=schemas.SystemMetric)
 def create_metric(metric: schemas.SystemMetricCreate, db: Session = Depends(get_db), api_key: str = Depends(verify_api_key)):
     use_cases = MetricsUseCases(db)
-    metric_domain = SystemMetricDomain(
-        device_name=metric.device_name,
-        cpu_temp=metric.cpu_temp,
-        cpu_usage=metric.cpu_usage,
-        disk_temp=metric.disk_temp,
-        disk_usage_gb=metric.disk_usage_gb,
-        disk_total_gb=metric.disk_total_gb,
-        ram_usage_mb=metric.ram_usage_mb,
-        ram_total_mb=metric.ram_total_mb,
-        ram_usage_percent=metric.ram_usage_percent,
-        net_rx_mb=metric.net_rx_mb,
-        net_tx_mb=metric.net_tx_mb,
-        uptime=metric.uptime,
-        power_usage_w=metric.power_usage_w
-    )
+    # Map every field of the schema (disk_sata_*, disk_services_json, cpu_name...) to the domain model.
+    metric_domain = SystemMetricDomain(**metric.model_dump())
     return use_cases.repository.add(metric_domain)
 
 @router.get("/metrics", response_model=List[schemas.SystemMetric])

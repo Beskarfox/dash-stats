@@ -14,6 +14,7 @@ class MetricsRepository:
             cpu_temp=metric.cpu_temp,
             cpu_usage=metric.cpu_usage,
             disk_temp=metric.disk_temp,
+            disk_sata_temp=metric.disk_sata_temp,
             disk_usage_gb=metric.disk_usage_gb,
             disk_total_gb=metric.disk_total_gb,
             disk_sata_usage_gb=metric.disk_sata_usage_gb,
