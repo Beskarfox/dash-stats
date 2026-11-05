@@ -52,39 +52,40 @@ Base.metadata.create_all(bind=engine)
 
 background_tasks = set()
 
-async def cron_worker():
-    # Initial collection on startup to ensure database has data immediately
+async def collect_metrics_once():
+    db = SessionLocal()
     try:
-        db = SessionLocal()
-        use_cases = MetricsUseCases(db)
-        print("Running initial startup system metrics capture...")
-        await asyncio.to_thread(use_cases.collect_and_save)
+        await asyncio.to_thread(MetricsUseCases(db).collect_and_save)
+    finally:
         db.close()
-    except Exception as e:
-        print(f"Error during initial metrics capture: {e}")
-        
+
+async def cron_worker():
+    # The first iteration runs immediately, so the database has data right after startup.
     print(f"Background worker started. Collecting metrics every {settings.COLLECTION_INTERVAL_SECONDS} seconds.")
-    
+
     while True:
         try:
-            db = SessionLocal()
-            use_cases = MetricsUseCases(db)
             print("Scheduled capture: collecting system metrics...")
-            await asyncio.to_thread(use_cases.collect_and_save)
-            db.close()
-            await asyncio.sleep(settings.COLLECTION_INTERVAL_SECONDS)
+            await collect_metrics_once()
         except asyncio.CancelledError:
             print("Cron worker background task cancelled.")
             break
         except Exception as e:
             print(f"Error during scheduled metrics capture: {e}")
 
+        # Sleep outside the try above: an error must never make the loop spin without pausing.
+        try:
+            await asyncio.sleep(settings.COLLECTION_INTERVAL_SECONDS)
+        except asyncio.CancelledError:
+            print("Cron worker background task cancelled.")
+            break
+
 async def backup_worker():
     # Wait a few seconds after startup to avoid concurrency conflicts with initial metrics capture
     await asyncio.sleep(15)
     # Mark any zombie "running" backups from previous lifecycle as failed/interrupted
+    db = SessionLocal()
     try:
-        db = SessionLocal()
         from app.infrastructure.db.models import BackupLog
         zombies = db.query(BackupLog).filter(BackupLog.status == "running").all()
         if zombies:
@@ -109,13 +110,14 @@ async def backup_worker():
                 except Exception as del_err:
                     print(f"Failed to delete aborted folder {z.service}: {del_err}")
             db.commit()
-        db.close()
     except Exception as e:
         print(f"Error cleaning up zombie backup logs: {e}")
+    finally:
+        db.close()
 
     while True:
+        db = SessionLocal()
         try:
-            db = SessionLocal()
             manager = BackupManager(db)
             status = manager.get_latest_backups_status()
             
@@ -150,10 +152,10 @@ async def backup_worker():
                 if needs_backup:
                     # Run backup inside a separate worker thread to avoid blocking the event loop
                     await asyncio.to_thread(manager.run_backup, service)
-            
-            db.close()
         except Exception as e:
             print(f"Error inside background backup worker: {e}")
+        finally:
+            db.close()
             
         try:
             # Check backups based on the configured interval
