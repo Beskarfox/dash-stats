@@ -255,11 +255,18 @@ class BackupManager:
 
     def _backup_nextcloud(self, target_dir: str, date_str: str):
         # 1. Database dump
+        db_user = settings.NEXTCLOUD_DB_USER
+        db_password = settings.NEXTCLOUD_DB_PASSWORD
+        if not db_user or not db_password:
+            raise Exception("NEXTCLOUD_DB_USER and NEXTCLOUD_DB_PASSWORD must be set to back up Nextcloud")
+
         db_file = os.path.join(target_dir, f"nextcloud_db_{date_str}.sql")
         with open(db_file, "w") as f:
+            # The password goes through the environment (`-e MYSQL_PWD` without a value copies it
+            # from the docker CLI's env), so it never appears on a command line visible in `ps`.
             res = subprocess.run([
-                "docker", "exec", "nextcloud-db", "mysqldump", "-u", "nucnath", "-pfripouille", "nextcloud"
-            ], stdout=f, stderr=subprocess.PIPE, text=True)
+                "docker", "exec", "-e", "MYSQL_PWD", "nextcloud-db", "mysqldump", "-u", db_user, "nextcloud"
+            ], stdout=f, stderr=subprocess.PIPE, text=True, env={**os.environ, "MYSQL_PWD": db_password})
             if res.returncode != 0:
                 raise Exception(f"MariaDB mysqldump failed: {res.stderr}")
 

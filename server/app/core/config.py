@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     MAX_BACKUPS_MINECRAFT: int = int(os.getenv("MAX_BACKUPS_MINECRAFT", "0"))
     MAX_BACKUPS_OUTLINE: int = int(os.getenv("MAX_BACKUPS_OUTLINE", "0"))
 
+    # Nextcloud MariaDB credentials used by mysqldump (no default: must be set in .env)
+    NEXTCLOUD_DB_USER: str = os.getenv("NEXTCLOUD_DB_USER", "")
+    NEXTCLOUD_DB_PASSWORD: str = os.getenv("NEXTCLOUD_DB_PASSWORD", "")
+
     # Minecraft Server settings
     MINECRAFT_HOST: str = os.getenv("MINECRAFT_HOST", "minecraft-paper")
     MINECRAFT_PORT: int = int(os.getenv("MINECRAFT_PORT", "25565"))
