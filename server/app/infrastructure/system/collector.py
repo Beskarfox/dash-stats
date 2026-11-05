@@ -782,8 +782,8 @@ class SystemMetricsCollector:
         disk_sata_usage_gb = 0.0
         try:
             sata_path = None
-            if os.path.exists('/mnt/backup'):
-                sata_path = '/mnt/backup'
+            if os.path.exists('/mnt/ssdsata/backups'):
+                sata_path = '/mnt/ssdsata/backups'
             else:
                 parts = psutil.disk_partitions(all=False)
                 for p in parts:

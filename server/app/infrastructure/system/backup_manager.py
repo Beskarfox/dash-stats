@@ -13,7 +13,7 @@ from app.domain.models import BackupLogDomain
 class BackupManager:
     _active_backups = set()
 
-    def __init__(self, db: Session, backup_root: str = "/mnt/backup"):
+    def __init__(self, db: Session, backup_root: str = "/mnt/ssdsata/backups"):
         self.db = db
         self.backup_root = backup_root
         self.repo = BackupLogsRepository(db)

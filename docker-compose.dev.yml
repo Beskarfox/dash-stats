@@ -17,7 +17,7 @@ services:
       - /usr/share/ollama/.ollama:/usr/share/ollama/.ollama:ro
       - /sys:/sys:ro
       - /proc:/host/proc:ro
-      - /mnt/backup:/mnt/backup:ro
+      - /mnt/ssdsata/backups:/mnt/ssdsata/backups:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       - API_KEY=${API_KEY:-your-secret-key}

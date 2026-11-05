@@ -97,7 +97,7 @@ async def backup_worker():
                 try:
                     if z.timestamp:
                         folder_str = z.timestamp.strftime("%Y%m%d_%H%M%S")
-                        folder_path = os.path.join("/mnt/backup", z.service, folder_str)
+                        folder_path = os.path.join("/mnt/ssdsata/backups", z.service, folder_str)
                         if os.path.exists(folder_path):
                             print(f"Physically removing aborted backup folder on startup: {folder_path}")
                             for root, dirs, files in os.walk(folder_path, topdown=False):
