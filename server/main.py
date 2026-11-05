@@ -15,40 +15,40 @@ from app.use_cases.metrics import MetricsUseCases
 from app.infrastructure.system.backup_manager import BackupManager
 from datetime import datetime
 
-# Initialize DB tables with self-healing schema validation
-try:
-    if settings.DATABASE_URL.startswith("sqlite:///"):
-        db_path = settings.DATABASE_URL.replace("sqlite:///", "")
-        if os.path.exists(db_path):
-            from sqlalchemy import inspect
-            inspector = inspect(engine)
-            if inspector.has_table("system_metrics"):
-                columns = [c["name"] for c in inspector.get_columns("system_metrics")]
-                
-                # Check for the newest column
-                if "disk_sata_temp" not in columns:
-                    print("Safe Migration: Adding missing disk_sata_temp column to SQLite database...")
-                    try:
-                        with engine.begin() as conn:
-                            from sqlalchemy import text
-                            conn.execute(text("ALTER TABLE system_metrics ADD COLUMN disk_sata_temp FLOAT DEFAULT 0.0;"))
-                        print("Migration completed successfully.")
-                    except Exception as alt_err:
-                        print(f"Could not alter table: {alt_err}")
-                
-                # Fallback for older missing columns that trigger a rebuild
-                elif "disk_sata_usage_gb" not in columns or "disk_services_json" not in columns or "cpu_name" not in columns or "ram_services_json" not in columns:
-                    print("Schema mismatch: legacy columns missing. Re-creating SQLite database...")
-                    engine.dispose()
-                    try:
-                        os.remove(db_path)
-                        print("Database file deleted successfully.")
-                    except Exception as delete_error:
-                        print(f"Could not delete database file: {delete_error}")
-except Exception as e:
-    print(f"Error during schema verification: {e}")
+# Initialize DB tables, then add any column missing from an existing database.
+# The database is NEVER deleted: it holds the backup logs, and losing them used to make the
+# backup cleanup treat every existing backup folder as an orphan.
+from sqlalchemy import inspect, text
+from app.infrastructure.db import models as _models  # noqa: F401  (registers tables on Base)
 
 Base.metadata.create_all(bind=engine)
+
+def migrate_missing_columns():
+    inspector = inspect(engine)
+    for table in Base.metadata.sorted_tables:
+        if not inspector.has_table(table.name):
+            continue
+        existing = {c["name"] for c in inspector.get_columns(table.name)}
+        for column in table.columns:
+            if column.name in existing:
+                continue
+            if column.primary_key:
+                print(f"Cannot add primary key column {table.name}.{column.name} automatically; skipping.")
+                continue
+            ddl = f"ALTER TABLE {table.name} ADD COLUMN {column.name} {column.type.compile(engine.dialect)}"
+            default = column.default.arg if column.default is not None and column.default.is_scalar else None
+            if isinstance(default, (int, float)) and not isinstance(default, bool):
+                ddl += f" DEFAULT {default}"
+            elif isinstance(default, str):
+                ddl += " DEFAULT '" + default.replace("'", "''") + "'"
+            print(f"Schema migration: adding missing column {table.name}.{column.name}")
+            with engine.begin() as conn:
+                conn.execute(text(ddl))
+
+try:
+    migrate_missing_columns()
+except Exception as e:
+    print(f"Error during schema migration: {e}")
 
 background_tasks = set()
 
@@ -112,6 +112,15 @@ async def backup_worker():
             db.commit()
     except Exception as e:
         print(f"Error cleaning up zombie backup logs: {e}")
+    finally:
+        db.close()
+
+    # Mark existing successful backups with the completion marker (one-time backfill)
+    db = SessionLocal()
+    try:
+        BackupManager(db).backfill_markers()
+    except Exception as e:
+        print(f"Error writing backup completion markers: {e}")
     finally:
         db.close()
 

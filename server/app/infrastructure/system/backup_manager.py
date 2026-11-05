@@ -17,10 +17,51 @@ class BackupManager:
     # Margin applied to the size of the latest backup when estimating the space a new one needs
     SPACE_MARGIN = 1.1
 
+    # Empty file written in every backup folder once the backup has succeeded. It makes a folder
+    # recognisable as a valid backup even if the SQLite database (backup_logs) is lost or reset.
+    COMPLETE_MARKER = ".backup_complete"
+
     def __init__(self, db: Session, backup_root: str = "/mnt/ssdsata/backups"):
         self.db = db
         self.backup_root = backup_root
         self.repo = BackupLogsRepository(db)
+
+    def _successful_folders(self, service: str) -> set:
+        from app.infrastructure.db.models import BackupLog
+        logs = self.db.query(BackupLog).filter(
+            BackupLog.service == service,
+            BackupLog.status == "success"
+        ).all()
+        return {log.timestamp.strftime("%Y%m%d_%H%M%S") for log in logs if log.timestamp}
+
+    def _failed_folders(self, service: str) -> set:
+        from app.infrastructure.db.models import BackupLog
+        logs = self.db.query(BackupLog).filter(
+            BackupLog.service == service,
+            BackupLog.status == "failed"
+        ).all()
+        return {log.timestamp.strftime("%Y%m%d_%H%M%S") for log in logs if log.timestamp}
+
+    def _is_complete(self, dir_path: str) -> bool:
+        return os.path.isfile(os.path.join(dir_path, self.COMPLETE_MARKER))
+
+    def _mark_complete(self, dir_path: str):
+        open(os.path.join(dir_path, self.COMPLETE_MARKER), "w").close()
+
+    def backfill_markers(self):
+        """Writes the completion marker in backup folders that the DB knows as successful but
+        that predate the marker, so they stay recognised if the DB is ever lost."""
+        for service in ["minecraft", "outline", "nextcloud"]:
+            service_dir = os.path.join(self.backup_root, service)
+            if not os.path.isdir(service_dir):
+                continue
+            for name in self._successful_folders(service):
+                dir_path = os.path.join(service_dir, name)
+                if os.path.isdir(dir_path) and not self._is_complete(dir_path):
+                    try:
+                        self._mark_complete(dir_path)
+                    except OSError as e:
+                        print(f"Could not write completion marker in {dir_path}: {e}")
 
     def get_backup_history(self) -> List[Dict[str, Any]]:
         """Returns a list of all backup logs from the database with progress percentage."""
@@ -76,13 +117,9 @@ class BackupManager:
             latest_db_log = self.repo.get_latest_for_service(service)
             service_dir = os.path.join(self.backup_root, service)
             
-            # Fetch successful logs to cross-reference physical folders
-            from app.infrastructure.db.models import BackupLog
-            successful_logs = self.db.query(BackupLog).filter(
-                BackupLog.service == service,
-                BackupLog.status == "success"
-            ).all()
-            successful_folders = {log.timestamp.strftime("%Y%m%d_%H%M%S") for log in successful_logs if log.timestamp}
+            # A folder is a valid backup if it carries the completion marker, or if the DB
+            # knows it as successful (backups made before the marker existed).
+            successful_folders = self._successful_folders(service)
 
             # Find physically existing backups on disk
             physical_backups = []
@@ -90,8 +127,8 @@ class BackupManager:
                 for name in os.listdir(service_dir):
                     dir_path = os.path.join(service_dir, name)
                     if os.path.isdir(dir_path):
-                        # Ignore folders that do not match a successful DB backup log (failed or interrupted)
-                        if name not in successful_folders:
+                        # Ignore folders that are not valid backups (failed, interrupted or in progress)
+                        if name not in successful_folders and not self._is_complete(dir_path):
                             continue
 
                         # Calculate folder size and list files
@@ -99,7 +136,7 @@ class BackupManager:
                         files = []
                         for f in os.listdir(dir_path):
                             fp = os.path.join(dir_path, f)
-                            if os.path.isfile(fp):
+                            if f != self.COMPLETE_MARKER and os.path.isfile(fp):
                                 size += os.path.getsize(fp)
                                 files.append(f)
                         
@@ -188,7 +225,8 @@ class BackupManager:
                     size_bytes += os.path.getsize(fp)
                     files.append(f)
 
-            # 4. Update DB log to 'success'
+            # 4. Mark the folder as a complete backup, then update DB log to 'success'
+            self._mark_complete(target_dir)
             self.repo.update(
                 log_id=log_id,
                 status="success",
@@ -319,13 +357,8 @@ class BackupManager:
         if not os.path.exists(service_dir):
             return
 
-        # Get successful folder timestamps from the database
-        from app.infrastructure.db.models import BackupLog
-        successful_logs = self.db.query(BackupLog).filter(
-            BackupLog.service == service,
-            BackupLog.status == "success"
-        ).all()
-        successful_folders = {log.timestamp.strftime("%Y%m%d_%H%M%S") for log in successful_logs if log.timestamp}
+        successful_folders = self._successful_folders(service)
+        failed_folders = self._failed_folders(service)
 
         # Find folders
         folders = []
@@ -335,12 +368,15 @@ class BackupManager:
                 try:
                     # Verify it matches the date format YYYYMMDD_HHMMSS
                     datetime.strptime(name, "%Y%m%d_%H%M%S")
-                    if name in successful_folders:
+                    if self._is_complete(dir_path) or name in successful_folders:
                         folders.append((name, dir_path))
-                    else:
-                        # Delete failed, aborted or orphan directories
-                        print(f"Deleting orphan/failed backup directory: {dir_path}")
+                    elif name in failed_folders:
+                        # Only delete folders the DB explicitly knows as failed
+                        print(f"Deleting failed backup directory: {dir_path}")
                         shutil.rmtree(dir_path)
+                    else:
+                        # Unknown folder (in progress, or DB lost/reset): never delete it automatically
+                        print(f"Keeping unknown backup directory (not in DB, no completion marker): {dir_path}")
                 except ValueError:
                     continue
 
