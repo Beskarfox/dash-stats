@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Header, BackgroundTasks, Query
+from fastapi import APIRouter, Depends, HTTPException, Header, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import secrets
@@ -95,8 +95,10 @@ def read_backups_history(db: Session = Depends(get_db)):
     return manager.get_backup_history()
 
 @router.post("/backups/run")
-def trigger_backup(request: schemas.BackupTriggerRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db), api_key: str = Depends(verify_api_key)):
-    manager = BackupManager(db)
+def trigger_backup(request: schemas.BackupTriggerRequest, db: Session = Depends(get_db), api_key: str = Depends(verify_api_key)):
+    # Backups are run by the separate backup worker (it alone has full Docker socket access):
+    # this endpoint only queues a request that the worker picks up within a few seconds.
+    from app.infrastructure.db.models import BackupRequest
     service_limits = {
         "minecraft": settings.MAX_BACKUPS_MINECRAFT,
         "outline": settings.MAX_BACKUPS_OUTLINE,
@@ -104,14 +106,16 @@ def trigger_backup(request: schemas.BackupTriggerRequest, background_tasks: Back
     }
     if request.service == "all":
         services = [s for s in ["minecraft", "outline", "nextcloud"] if service_limits.get(s, 1) != 0]
-        for s in services:
-            background_tasks.add_task(manager.run_backup, s)
-        return {"status": "success", "message": "Backups queued for all services"}
     else:
         if request.service not in ["minecraft", "outline", "nextcloud"]:
             raise HTTPException(status_code=400, detail=f"Invalid service name: {request.service}")
         if service_limits.get(request.service, 1) == 0:
             raise HTTPException(status_code=400, detail=f"{request.service} backups are disabled (MAX_BACKUPS_{request.service.upper()}=0)")
-        background_tasks.add_task(manager.run_backup, request.service)
-        return {"status": "success", "message": f"Backup queued for {request.service}"}
+        services = [request.service]
 
+    for s in services:
+        db.add(BackupRequest(service=s))
+    db.commit()
+    if request.service == "all":
+        return {"status": "success", "message": "Backups queued for all services"}
+    return {"status": "success", "message": f"Backup queued for {request.service}"}

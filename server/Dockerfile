@@ -2,13 +2,8 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install Docker CLI to execute docker commands on the host daemon
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && curl -fsSL https://get.docker.com | sh \
-    && apt-get purge -y curl \
-    && apt-get autoremove -y \
-    && rm -rf /var/lib/apt/lists/*
+# Docker CLI only (pinned), copied from the official image: no daemon, no install script.
+COPY --from=docker:27.5.1-cli /usr/local/bin/docker /usr/local/bin/docker
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

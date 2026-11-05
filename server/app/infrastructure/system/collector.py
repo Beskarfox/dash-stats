@@ -46,13 +46,21 @@ class SystemMetricsCollector:
         import socket
         import json
         import os
-        socket_path = "/var/run/docker.sock"
-        if not os.path.exists(socket_path):
-            return None
+        # DOCKER_HOST=tcp://host:port goes through the read-only socket proxy (production);
+        # otherwise fall back to the local unix socket.
+        docker_host = os.getenv("DOCKER_HOST", "")
+        s = None
         try:
-            s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            s.settimeout(10.0)
-            s.connect(socket_path)
+            if docker_host.startswith("tcp://"):
+                host, _, port = docker_host[len("tcp://"):].rstrip("/").partition(":")
+                s = socket.create_connection((host, int(port or 2375)), timeout=10.0)
+            else:
+                socket_path = docker_host[len("unix://"):] if docker_host.startswith("unix://") else "/var/run/docker.sock"
+                if not os.path.exists(socket_path):
+                    return None
+                s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                s.settimeout(10.0)
+                s.connect(socket_path)
             request = f"GET {path} HTTP/1.0\r\nHost: localhost\r\n\r\n"
             s.sendall(request.encode('utf-8'))
             
@@ -70,10 +78,11 @@ class SystemMetricsCollector:
         except Exception:
             return None
         finally:
-            try:
-                s.close()
-            except Exception:
-                pass
+            if s is not None:
+                try:
+                    s.close()
+                except Exception:
+                    pass
 
     @staticmethod
     def get_container_mem_usage(container_id: str) -> float:

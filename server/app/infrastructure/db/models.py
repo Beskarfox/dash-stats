@@ -38,3 +38,12 @@ class BackupLog(Base):
     size_bytes = Column(Integer, default=0)
     files_json = Column(String, nullable=True)
     error_message = Column(String, nullable=True)
+
+
+class BackupRequest(Base):
+    """Manual backup requested through the API, picked up by the separate backup worker."""
+    __tablename__ = "backup_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    service = Column(String, index=True)
+    requested_at = Column(DateTime, default=datetime.utcnow)
