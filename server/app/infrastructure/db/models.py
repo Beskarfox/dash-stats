@@ -26,6 +26,7 @@ class SystemMetric(Base):
     disk_services_json = Column(String, nullable=True)
     cpu_name = Column(String, nullable=True)
     ram_services_json = Column(String, nullable=True)
+    ram_details_json = Column(String, nullable=True)
 
 
 class BackupLog(Base):

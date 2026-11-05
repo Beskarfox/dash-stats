@@ -22,6 +22,7 @@ class SystemMetricBase(BaseModel):
     disk_services_json: Optional[str] = None
     cpu_name: Optional[str] = None
     ram_services_json: Optional[str] = None
+    ram_details_json: Optional[str] = None
 
 class SystemMetricCreate(SystemMetricBase):
     pass
