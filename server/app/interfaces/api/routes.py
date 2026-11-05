@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Header, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Header, BackgroundTasks, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
-import os
+import secrets
 from app.core.database import get_db
 from app.interfaces.api import schemas
 from app.use_cases.metrics import MetricsUseCases
@@ -12,10 +12,9 @@ from app.infrastructure.system.backup_manager import BackupManager
 
 router = APIRouter()
 
-API_KEY = os.getenv("API_KEY", "your-secret-key")
-
 async def verify_api_key(x_api_key: str = Header(...)):
-    if x_api_key != API_KEY:
+    # Constant-time comparison against the key from settings (validated at startup)
+    if not secrets.compare_digest(x_api_key.encode(), settings.API_KEY.encode()):
         raise HTTPException(status_code=403, detail="Could not validate credentials")
     return x_api_key
 
@@ -28,7 +27,7 @@ def create_metric(metric: schemas.SystemMetricCreate, db: Session = Depends(get_
     return use_cases.repository.add(metric_domain)
 
 @router.get("/metrics", response_model=List[schemas.SystemMetric])
-def read_metrics(limit: int = 100, db: Session = Depends(get_db)):
+def read_metrics(limit: int = Query(100, ge=1, le=10000), db: Session = Depends(get_db)):
     use_cases = MetricsUseCases(db)
     return use_cases.get_history(limit)
 

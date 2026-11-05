@@ -2,7 +2,8 @@ import os
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    API_KEY: str = os.getenv("API_KEY", "your-secret-key")
+    # Required: the API refuses to start if it is empty or left to the old public default.
+    API_KEY: str = os.getenv("API_KEY", "")
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./data/sql_app.db")
     
     # Power measurement defaults (in Watts)

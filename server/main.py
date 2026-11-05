@@ -15,6 +15,12 @@ from app.use_cases.metrics import MetricsUseCases
 from app.infrastructure.system.backup_manager import BackupManager
 from datetime import datetime
 
+# Refuse to start with a missing or publicly known API key: it protects the write endpoints
+# (/metrics/reset, /backups/run...) of an API exposed on the Internet.
+if not settings.API_KEY or settings.API_KEY == "your-secret-key":
+    raise SystemExit("API_KEY is not set (or still 'your-secret-key'). Set a strong random value in .env, "
+                     "e.g. with: openssl rand -hex 32")
+
 # Initialize DB tables, then add any column missing from an existing database.
 # The database is NEVER deleted: it holds the backup logs, and losing them used to make the
 # backup cleanup treat every existing backup folder as an orphan.
