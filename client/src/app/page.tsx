@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DashboardTemplate } from "@/components/templates/DashboardTemplate";
 import { MetricsOverview } from "@/components/organisms/MetricsOverview";
 import { ServicesSection } from "@/components/organisms/ServicesSection";
@@ -30,6 +30,10 @@ export default function Home() {
   const [backupsStatus, setBackupsStatus] = useState<BackupsStatusResponse | null>(null);
   const [backupsLoading, setBackupsLoading] = useState(false);
 
+  // Incremented on every history request: only the response to the latest request is applied,
+  // so a slow response for an old time range can never overwrite the current one.
+  const historyRequestId = useRef(0);
+
   const fetchLatestData = async () => {
     try {
       const latestData = await metricsService.getLatest();
@@ -48,8 +52,11 @@ export default function Home() {
       // Récupérer beaucoup plus de points quand on veut tout voir,
       // sinon le filtre "Tout" est limité aux 300 derniers enregistrements (~2 jours selon la fréquence de collecte)
       const limit = timeRange === "all" ? 10000 : 300;
+      const requestId = ++historyRequestId.current;
       const historyData = await metricsService.getHistory(limit);
-      setHistory(historyData);
+      if (requestId === historyRequestId.current) {
+        setHistory(historyData);
+      }
     } catch (err) {
       console.error("Failed to fetch history metrics:", err);
     }
@@ -148,7 +155,8 @@ export default function Home() {
         clearInterval(intervalBackups);
       };
     }
-  }, [isMounted, activeTab]);
+    // timeRange is a dependency so the 30s history poll always uses the selected range
+  }, [isMounted, activeTab, timeRange]);
 
   const Title = (
     <div className="flex items-center gap-2.5">
