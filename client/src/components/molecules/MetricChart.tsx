@@ -141,8 +141,8 @@ export const MetricChart = ({ title, data, dataKey, color = "#2563eb", unit = ""
           <p className="font-medium text-muted-foreground/80">{formattedLabel}</p>
           <p className="font-extrabold text-foreground text-sm flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full inline-block animate-pulse" style={{ backgroundColor: color }} />
-            {payload[0].value}
-            <span className="text-xs font-semibold text-muted-foreground/80">{unit}</span>
+            {payload[0].value ?? "—"}
+            {payload[0].value != null && <span className="text-xs font-semibold text-muted-foreground/80">{unit}</span>}
           </p>
         </div>
       );
@@ -163,8 +163,8 @@ export const MetricChart = ({ title, data, dataKey, color = "#2563eb", unit = ""
           <p className="font-medium text-muted-foreground/80">{formattedLabel}</p>
           <p className="font-extrabold text-foreground text-sm flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full inline-block animate-pulse" style={{ backgroundColor: color }} />
-            {payload[0].value}
-            <span className="text-xs font-semibold text-muted-foreground/80">{unit}</span>
+            {payload[0].value ?? "—"}
+            {payload[0].value != null && <span className="text-xs font-semibold text-muted-foreground/80">{unit}</span>}
           </p>
         </div>
       );

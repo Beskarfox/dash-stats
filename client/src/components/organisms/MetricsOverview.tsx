@@ -66,6 +66,9 @@ export const MetricsOverview = ({ latest, backupsStatus }: MetricsOverviewProps)
     ].filter(item => item.name === "Disponible" || (item.name === "Autres" ? item.value >= 0.001 : item.value > 0));
   }
 
+  // Real measured power only: no value is shown for rows without a RAPL source
+  const hasMeasuredPower = !!latest.power_source && latest.power_usage_w !== null && latest.power_usage_w !== undefined;
+
   // 2. Calculate RAM memory breakdown
   const ramUsed = (latest.ram_usage_mb || 0.0) / 1024.0;
   const ramTotal = (latest.ram_total_mb || 1.0) / 1024.0;
@@ -519,10 +522,16 @@ export const MetricsOverview = ({ latest, backupsStatus }: MetricsOverviewProps)
         <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
           <MetricCard
             title="Puissance"
-            value={(latest.power_usage_w || 0).toFixed(1)}
-            unit=" W"
+            value={hasMeasuredPower ? latest.power_usage_w!.toFixed(1) : "—"}
+            unit={hasMeasuredPower ? " W" : undefined}
             icon={<Zap className="h-6 w-6" />}
-            description="Consommation estimée"
+            description={
+              !hasMeasuredPower
+                ? "Mesure indisponible (RAPL non accessible)"
+                : latest.power_source === "rapl-psys"
+                  ? "Mesurée par RAPL (plateforme), hors disques et alimentation"
+                  : "Mesurée par RAPL (CPU), hors disques et alimentation"
+            }
             color="yellow"
           />
           <MetricCard

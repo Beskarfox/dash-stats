@@ -52,7 +52,7 @@ export const DataTable = ({ data }: DataTableProps) => {
                 <TableCell className="px-4 py-3 font-semibold text-foreground">{metric.ram_usage_percent.toFixed(1)}%</TableCell>
                 <TableCell className="px-4 py-3 font-semibold text-foreground">{((metric.disk_usage_gb / metric.disk_total_gb) * 100).toFixed(1)}%</TableCell>
                 <TableCell className="px-4 py-3 font-semibold text-foreground">{metric.net_rx_mb} Mo/s</TableCell>
-                <TableCell className="px-4 py-3 font-semibold text-foreground">{(metric.power_usage_w || 0).toFixed(1)} W</TableCell>
+                <TableCell className="px-4 py-3 font-semibold text-foreground">{metric.power_source && metric.power_usage_w != null ? `${metric.power_usage_w.toFixed(1)} W` : "—"}</TableCell>
               </TableRow>
             ))
           )}

@@ -22,7 +22,11 @@ class SystemMetric(Base):
     net_rx_mb = Column(Float)
     net_tx_mb = Column(Float)
     uptime = Column(String)
-    power_usage_w = Column(Float, default=0.0)
+    # Measured power (RAPL), NULL when no measurement is available. Rows without power_source
+    # predate real measurements and hold estimated values.
+    power_usage_w = Column(Float, nullable=True)
+    power_source = Column(String, nullable=True)
+    energy_wh = Column(Float, nullable=True)
     disk_services_json = Column(String, nullable=True)
     cpu_name = Column(String, nullable=True)
     ram_services_json = Column(String, nullable=True)

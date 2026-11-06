@@ -1,6 +1,9 @@
 import { MetricChart } from "@/components/molecules/MetricChart";
 import { SystemMetric } from "@/types";
 
+// Electricity price used to convert the measured energy into a cost
+const PRICE_EUR_PER_KWH = 0.18;
+
 interface HistorySectionProps {
   history: SystemMetric[];
   timeRange: "24h" | "7d" | "30d" | "all";
@@ -25,24 +28,15 @@ export const HistorySection = ({ history, timeRange }: HistorySectionProps) => {
 
   const filteredHistory = filterData(reversedHistory);
 
-  // Compute cumulative cost over the entire base timeframe first
+  // Cumulative cost from the energy actually measured by RAPL between two collections (energy_wh).
+  // Rows without a measurement (older estimated rows, RAPL unavailable) add nothing, and their
+  // power is hidden (null = gap in the chart) instead of showing an estimated value.
   let cumulativeCost = 0.0;
-  const historyWithCumulative = filteredHistory.map((item, idx) => {
-    let intervalHours = 1.0;
-    if (idx > 0) {
-      const prevTime = new Date(filteredHistory[idx - 1].timestamp).getTime();
-      const currTime = new Date(item.timestamp).getTime();
-      const diffMs = currTime - prevTime;
-      const diffHours = diffMs / (1000 * 60 * 60);
-      intervalHours = diffHours > 4.0 ? 1.0 : diffHours;
-    }
-    const power = item.power_usage_w || 0.0;
-    const kwh = (power * intervalHours) / 1000.0;
-    const cost = kwh * 0.18; // 0.18 € per kWh
-    cumulativeCost += cost;
-
+  const historyWithCumulative = filteredHistory.map((item) => {
+    cumulativeCost += ((item.energy_wh ?? 0) / 1000.0) * PRICE_EUR_PER_KWH;
     return {
       ...item,
+      power_usage_w: item.power_source ? item.power_usage_w : null,
       cumulative_cost_eur: parseFloat(cumulativeCost.toFixed(3))
     };
   });
@@ -112,14 +106,14 @@ export const HistorySection = ({ history, timeRange }: HistorySectionProps) => {
             unit=" Mo/s"
           />
           <MetricChart
-            title="Consommation Électrique"
+            title="Puissance mesurée (RAPL)"
             data={chartData}
             dataKey="power_usage_w"
             color="#eab308"
             unit=" W"
           />
           <MetricChart
-            title="Coût Électrique Cumulé (depuis le 10/07)"
+            title="Coût électrique cumulé (énergie mesurée, 0,18 €/kWh)"
             data={chartData}
             dataKey="cumulative_cost_eur"
             color="#10b981"

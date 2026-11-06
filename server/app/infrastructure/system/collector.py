@@ -3,6 +3,7 @@ import time
 import platform
 import socket
 import re
+from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 import psutil
 from app.core.config import settings
@@ -579,13 +580,63 @@ class SystemMetricsCollector:
         except Exception:
             return ""
 
+    RAPL_ROOT = "/sys/class/powercap"
+
+    # Last RAPL reading of a SAVED collection: (source, {zone: energy_uj}, time.time()).
+    # Used to measure the real energy consumed between two saved collections.
+    _energy_baseline: Optional[Tuple[str, Dict[str, int], float]] = None
+
     @classmethod
-    def get_rapl_energy(cls):
+    def get_rapl_zones(cls) -> Tuple[Optional[str], List[str]]:
+        """Returns the RAPL zones to measure and their source label.
+
+        'psys' (platform: SoC + chipset...) is preferred when the CPU exposes it; otherwise the sum
+        of the 'package-N' zones (CPU cores, iGPU, uncore). The two overlap, so they are never added.
+        """
+        zones = []
         try:
-            with open('/sys/class/powercap/intel-rapl/intel-rapl:0/energy_uj', 'r') as f:
-                return int(f.read().strip())
+            for entry in sorted(os.listdir(cls.RAPL_ROOT)):
+                if not re.fullmatch(r"intel-rapl:\d+", entry):
+                    continue
+                path = os.path.join(cls.RAPL_ROOT, entry)
+                with open(os.path.join(path, "name")) as f:
+                    zones.append((f.read().strip(), path))
+        except Exception:
+            return None, []
+        psys = [p for name, p in zones if name == "psys"]
+        if psys:
+            return "rapl-psys", psys
+        packages = [p for name, p in zones if name.startswith("package")]
+        if packages:
+            return "rapl-package", packages
+        return None, []
+
+    @staticmethod
+    def read_rapl_counters(zones: List[str]) -> Optional[Dict[str, int]]:
+        """Reads energy_uj of each zone (root only since Linux 5.10). None if any is unreadable."""
+        try:
+            counters = {}
+            for zone in zones:
+                with open(os.path.join(zone, "energy_uj")) as f:
+                    counters[zone] = int(f.read().strip())
+            return counters
         except Exception:
             return None
+
+    @staticmethod
+    def rapl_delta_uj(zones: List[str], start: Dict[str, int], end: Dict[str, int]) -> Optional[int]:
+        """Energy consumed between two readings, handling counter wrap-around (max_energy_range_uj)."""
+        total = 0
+        for zone in zones:
+            delta = end[zone] - start[zone]
+            if delta < 0:
+                try:
+                    with open(os.path.join(zone, "max_energy_range_uj")) as f:
+                        delta += int(f.read().strip())
+                except Exception:
+                    return None
+            total += delta
+        return total
 
     @classmethod
     def get_host_net_bytes(cls):
@@ -651,9 +702,15 @@ class SystemMetricsCollector:
         return None
 
     @classmethod
-    def collect(cls) -> SystemMetricDomain:
-        # Get start RAPL energy and timestamp
-        start_energy = cls.get_rapl_energy()
+    def collect(cls, track_energy: bool = True) -> SystemMetricDomain:
+        """Collects host metrics.
+
+        track_energy: measure the energy consumed since the previous tracked collection (only for
+        collections that are saved, so that saved energy_wh values add up to the real total).
+        """
+        # Start RAPL reading for the instantaneous power measurement
+        power_source, rapl_zones = cls.get_rapl_zones()
+        start_counters = cls.read_rapl_counters(rapl_zones) if rapl_zones else None
         start_time = time.time()
 
         # Get host device name
@@ -883,24 +940,32 @@ class SystemMetricsCollector:
         # 7. Uptime
         uptime = cls.get_uptime()
 
-        # Get end RAPL energy and calculate actual consumption
-        end_energy = cls.get_rapl_energy()
+        # 8. Electricity consumption: measured only (RAPL), never estimated.
+        # power_usage_w = average power over this collection (~2 s); None if RAPL is unavailable.
+        end_counters = cls.read_rapl_counters(rapl_zones) if start_counters is not None else None
         end_time = time.time()
 
-        rapl_power = None
-        if start_energy is not None and end_energy is not None:
-            elapsed = end_time - start_time
-            if elapsed > 0:
-                rapl_power = (end_energy - start_energy) / (1_000_000 * elapsed)
+        power_usage_w = None
+        if start_counters is not None and end_counters is not None and end_time > start_time:
+            delta_uj = cls.rapl_delta_uj(rapl_zones, start_counters, end_counters)
+            if delta_uj is not None:
+                power_usage_w = round(delta_uj / 1_000_000 / (end_time - start_time), 2)
+        if power_usage_w is None:
+            power_source = None
 
-        # 8. Electricity consumption (W)
-        if rapl_power is not None:
-            # CPU RAPL power + NUC base idle power (rest of motherboard/components)
-            power_usage_w = round(settings.POWER_BASE_W + rapl_power, 2)
-        else:
-            # Fallback dynamic formula: base_power + (max_power - base_power) * (cpu_usage / 100)
-            power_usage_w = settings.POWER_BASE_W + (settings.POWER_MAX_W - settings.POWER_BASE_W) * (cpu_usage / 100.0)
-            power_usage_w = max(settings.POWER_BASE_W, round(power_usage_w, 2))
+        # energy_wh = real energy consumed since the previous saved collection (None on the first
+        # collection after a restart, or if the RAPL source changed).
+        energy_wh = None
+        if track_energy:
+            if end_counters is not None:
+                baseline = cls._energy_baseline
+                if baseline is not None and baseline[0] == power_source and set(baseline[1]) == set(end_counters):
+                    delta_uj = cls.rapl_delta_uj(rapl_zones, baseline[1], end_counters)
+                    if delta_uj is not None:
+                        energy_wh = round(delta_uj / 3_600_000_000, 4)
+                cls._energy_baseline = (power_source, end_counters, end_time)
+            else:
+                cls._energy_baseline = None
 
         cpu_name = cls.get_cpu_name()
         ram_services_json = cls.get_docker_ram_usage()
@@ -922,6 +987,8 @@ class SystemMetricsCollector:
             net_tx_mb=net_tx_mb,
             uptime=uptime,
             power_usage_w=power_usage_w,
+            power_source=power_source,
+            energy_wh=energy_wh,
             disk_services_json=disk_services_json,
             cpu_name=cpu_name,
             ram_services_json=ram_services_json,

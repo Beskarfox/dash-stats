@@ -20,7 +20,6 @@ Une solution de monitoring full-stack pour Linux.
     ```
 3.  Définir `API_KEY` (obligatoire, l'API refuse de démarrer sans : `openssl rand -hex 32`) et `NEXT_PUBLIC_API_URL` dans `.env`. Pour les sauvegardes Nextcloud, définir aussi `NEXTCLOUD_DB_USER` et `NEXTCLOUD_DB_PASSWORD`. Il est aussi possible de configurer :
     - `COLLECTION_INTERVAL_SECONDS` : l'intervalle en secondes pour la collecte de métriques par le cron worker (par défaut `3600` secondes / 1 heure).
-    - `POWER_BASE_W` et `POWER_MAX_W` : estimations de consommation électrique de la machine hôte.
     - `TRAEFIK_CLIENT_HOST` : hostname utilisé par `docker-compose.dev.yml` (mettre `stats.staging.beskarfox.com` en staging).
     - `ALLOWED_DEV_ORIGINS` : liste de hostnames (séparés par des virgules) acceptés par le serveur dev Next.js.
 4.  Lancer les services :

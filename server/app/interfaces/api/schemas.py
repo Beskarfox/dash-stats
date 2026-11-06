@@ -18,7 +18,9 @@ class SystemMetricBase(BaseModel):
     net_rx_mb: float
     net_tx_mb: float
     uptime: str
-    power_usage_w: Optional[float] = 0.0
+    power_usage_w: Optional[float] = None
+    power_source: Optional[str] = None  # "rapl-psys" / "rapl-package"; None = no real measurement
+    energy_wh: Optional[float] = None   # measured energy since the previous saved collection
     disk_services_json: Optional[str] = None
     cpu_name: Optional[str] = None
     ram_services_json: Optional[str] = None
