@@ -16,6 +16,8 @@ services:
       - /opt:/opt:ro
       - /usr/share/ollama/.ollama:/usr/share/ollama/.ollama:ro
       - /sys:/sys:ro
+      # RAPL energy counters (real power): Docker masks them under /sys, see collector.RAPL_ROOTS
+      - /sys/devices/virtual/powercap/intel-rapl:/host/rapl:ro
       - /proc:/host/proc:ro
       - /mnt/ssdsata/backups:/mnt/ssdsata/backups:ro
     environment:

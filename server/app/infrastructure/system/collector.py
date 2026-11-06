@@ -580,7 +580,10 @@ class SystemMetricsCollector:
         except Exception:
             return ""
 
-    RAPL_ROOT = "/sys/class/powercap"
+    # Docker (>= 25) masks /sys/devices/virtual/powercap inside containers (CVE-2020-8694), so
+    # /sys/class/powercap/intel-rapl:* are dangling links there. The compose files bind-mount the
+    # host directory to /host/rapl instead; /sys/class/powercap is the fallback outside Docker.
+    RAPL_ROOTS = [r for r in [os.getenv("RAPL_ROOT"), "/host/rapl", "/sys/class/powercap"] if r]
 
     # Last RAPL reading of a SAVED collection: (source, {zone: energy_uj}, time.time()).
     # Used to measure the real energy consumed between two saved collections.
@@ -594,14 +597,19 @@ class SystemMetricsCollector:
         of the 'package-N' zones (CPU cores, iGPU, uncore). The two overlap, so they are never added.
         """
         zones = []
-        try:
-            for entry in sorted(os.listdir(cls.RAPL_ROOT)):
-                if not re.fullmatch(r"intel-rapl:\d+", entry):
-                    continue
-                path = os.path.join(cls.RAPL_ROOT, entry)
-                with open(os.path.join(path, "name")) as f:
-                    zones.append((f.read().strip(), path))
-        except Exception:
+        for root in cls.RAPL_ROOTS:
+            try:
+                for entry in sorted(os.listdir(root)):
+                    if not re.fullmatch(r"intel-rapl:\d+", entry):
+                        continue
+                    path = os.path.join(root, entry)
+                    with open(os.path.join(path, "name")) as f:
+                        zones.append((f.read().strip(), path))
+            except Exception:
+                zones = []
+            if zones:
+                break
+        if not zones:
             return None, []
         psys = [p for name, p in zones if name == "psys"]
         if psys:
