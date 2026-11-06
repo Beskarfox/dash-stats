@@ -101,6 +101,27 @@ export const MetricsOverview = ({ latest, backupsStatus }: MetricsOverviewProps)
       ].filter(row => row.value !== undefined)
     : [];
 
+  // Rows of the "Disponible" tooltip: what makes up the memory not held by applications
+  const availableDetailRows = ramDetailRows.filter(row => ["Libre", "Cache", "Buffers", "Disponible"].includes(row.label));
+
+  // Shared layout of the RAM tooltips: label + short hint, value on the right
+  const renderDetailRows = (rows: typeof ramDetailRows) => (
+    <div className="flex flex-col gap-1.5">
+      {rows.map(row => (
+        <div key={row.label} className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="font-semibold text-foreground/90 leading-tight">{row.label}</p>
+            <p className="text-[11px] text-muted-foreground/60 leading-tight">{row.hint}</p>
+          </div>
+          <span className="font-extrabold text-foreground tabular-nums whitespace-nowrap">
+            {formatMb(row.value ?? 0)}
+            {row.extra && <span className="font-semibold text-muted-foreground/80">{row.extra}</span>}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+
   let ramServicesData: { name: string; value: number; color: string }[] = [];
   try {
     if (latest.ram_services_json) {
@@ -223,22 +244,10 @@ export const MetricsOverview = ({ latest, backupsStatus }: MetricsOverviewProps)
                       <CardTitle className="text-base font-bold tracking-wide text-foreground/90">Mémoire</CardTitle>
                       {ramDetailRows.length > 0 && (
                         <InfoTooltip label="Détail de la mémoire">
-                          <span className="block font-semibold text-foreground mb-1.5">
-                            Détail de la RAM ({formatMb(ramDetails?.total ?? 0)})
-                          </span>
-                          <span className="grid grid-cols-[auto_auto] gap-x-4 gap-y-1">
-                            {ramDetailRows.map(row => (
-                              <span key={row.label} className="contents">
-                                <span>
-                                  <span className="font-semibold">{row.label}</span>
-                                  <span className="text-muted-foreground/70"> · {row.hint}</span>
-                                </span>
-                                <span className="text-right tabular-nums">
-                                  {formatMb(row.value ?? 0)}{row.extra}
-                                </span>
-                              </span>
-                            ))}
-                          </span>
+                          <p className="font-medium text-muted-foreground/80 mb-2">
+                            Détail de la RAM · {formatMb(ramDetails?.total ?? 0)}
+                          </p>
+                          {renderDetailRows(ramDetailRows)}
                         </InfoTooltip>
                       )}
                     </div>
@@ -276,16 +285,8 @@ export const MetricsOverview = ({ latest, backupsStatus }: MetricsOverviewProps)
                       </span>
                       {item.name === "Disponible" && ramDetails && (
                         <InfoTooltip label="Détail de la mémoire disponible">
-                          <span className="block">Mémoire non utilisée par les applications.</span>
-                          <span className="block mt-1 text-muted-foreground/80">
-                            Dont {formatMb(ramDetails.cached ?? 0)} de cache et {formatMb(ramDetails.buffers ?? 0)} de buffers,
-                            que Linux libère automatiquement si besoin.
-                          </span>
-                          {ramDetails.available !== undefined && (
-                            <span className="block mt-1 text-muted-foreground/80">
-                              Réellement disponible selon le noyau : {formatMb(ramDetails.available)}.
-                            </span>
-                          )}
+                          <p className="font-medium text-muted-foreground/80 mb-2">Mémoire disponible</p>
+                          {renderDetailRows(availableDetailRows)}
                         </InfoTooltip>
                       )}
                     </div>
