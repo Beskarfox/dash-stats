@@ -1,4 +1,5 @@
 import { MetricCard } from "@/components/atoms/MetricCard";
+import { InfoTooltip } from "@/components/atoms/InfoTooltip";
 import { SystemMetric, BackupsStatusResponse } from "@/types";
 import { Cpu, HardDrive, ChartNoAxesColumnIncreasing, MemoryStick, Zap, ArrowUpDown } from "lucide-react";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -70,6 +71,32 @@ export const MetricsOverview = ({ latest, backupsStatus }: MetricsOverviewProps)
   const ramTotal = (latest.ram_total_mb || 1.0) / 1024.0;
   const ramFree = Math.max(0, parseFloat((ramTotal - ramUsed).toFixed(2)));
   const ramPercent = latest.ram_usage_percent.toFixed(1);
+
+  // Detailed memory breakdown from /proc/meminfo (MB), shown in the RAM info tooltips
+  let ramDetails: Record<string, number> | null = null;
+  try {
+    ramDetails = latest.ram_details_json ? JSON.parse(latest.ram_details_json) : null;
+  } catch (e) {
+    console.error("Failed to parse RAM details JSON:", e);
+  }
+  const formatMb = (mb: number) => (mb >= 1024 ? `${(mb / 1024).toFixed(1)} Go` : `${mb.toFixed(0)} Mo`);
+  const ramDetailRows: { label: string; hint: string; value?: number; extra?: string }[] = ramDetails
+    ? [
+        { label: "Utilisée", hint: "mémoire des applications", value: ramDetails.used },
+        { label: "Cache", hint: "fichiers en cache, libérable", value: ramDetails.cached },
+        { label: "Buffers", hint: "tampons disque du noyau", value: ramDetails.buffers },
+        { label: "Partagée", hint: "tmpfs / mémoire partagée", value: ramDetails.shared },
+        { label: "Slab", hint: "structures du noyau", value: ramDetails.slab },
+        { label: "Libre", hint: "totalement inutilisée", value: ramDetails.free },
+        { label: "Disponible", hint: "libre + cache récupérable", value: ramDetails.available },
+        {
+          label: "Swap",
+          hint: "mémoire échangée sur disque",
+          value: ramDetails.swap_used,
+          extra: ramDetails.swap_total !== undefined ? ` / ${formatMb(ramDetails.swap_total)}` : undefined,
+        },
+      ].filter(row => row.value !== undefined)
+    : [];
 
   let ramServicesData: { name: string; value: number; color: string }[] = [];
   try {
@@ -189,7 +216,29 @@ export const MetricsOverview = ({ latest, backupsStatus }: MetricsOverviewProps)
                     <MemoryStick className="h-6 w-6" />
                   </div>
                   <div className="flex flex-col">
-                    <CardTitle className="text-base font-bold tracking-wide text-foreground/90">Mémoire</CardTitle>
+                    <div className="flex items-center gap-1.5">
+                      <CardTitle className="text-base font-bold tracking-wide text-foreground/90">Mémoire</CardTitle>
+                      {ramDetailRows.length > 0 && (
+                        <InfoTooltip label="Détail de la mémoire">
+                          <span className="block font-semibold text-foreground mb-1.5">
+                            Détail de la RAM ({formatMb(ramDetails?.total ?? 0)})
+                          </span>
+                          <span className="grid grid-cols-[auto_auto] gap-x-4 gap-y-1">
+                            {ramDetailRows.map(row => (
+                              <span key={row.label} className="contents">
+                                <span>
+                                  <span className="font-semibold">{row.label}</span>
+                                  <span className="text-muted-foreground/70"> · {row.hint}</span>
+                                </span>
+                                <span className="text-right tabular-nums">
+                                  {formatMb(row.value ?? 0)}{row.extra}
+                                </span>
+                              </span>
+                            ))}
+                          </span>
+                        </InfoTooltip>
+                      )}
+                    </div>
                     <span className="text-sm text-muted-foreground/55 font-semibold -mt-0.5">RAM</span>
                   </div>
                 </div>
@@ -222,6 +271,20 @@ export const MetricsOverview = ({ latest, backupsStatus }: MetricsOverviewProps)
                             ? `${item.value.toFixed(1)} Go`
                             : `${(item.value * 1024).toFixed(0)} Mo`}
                       </span>
+                      {item.name === "Disponible" && ramDetails && (
+                        <InfoTooltip label="Détail de la mémoire disponible">
+                          <span className="block">Mémoire non utilisée par les applications.</span>
+                          <span className="block mt-1 text-muted-foreground/80">
+                            Dont {formatMb(ramDetails.cached ?? 0)} de cache et {formatMb(ramDetails.buffers ?? 0)} de buffers,
+                            que Linux libère automatiquement si besoin.
+                          </span>
+                          {ramDetails.available !== undefined && (
+                            <span className="block mt-1 text-muted-foreground/80">
+                              Réellement disponible selon le noyau : {formatMb(ramDetails.available)}.
+                            </span>
+                          )}
+                        </InfoTooltip>
+                      )}
                     </div>
                   ))}
                 </div>

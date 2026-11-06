@@ -7,6 +7,8 @@ from datetime import datetime
 import psutil
 from app.core.config import settings
 from app.domain.models import SystemMetricDomain
+import json
+from typing import Optional
 
 class SystemMetricsCollector:
     @staticmethod
@@ -289,6 +291,30 @@ class SystemMetricsCollector:
                 ram_usage["Ollama"] = round(ollama_mb, 1)
 
         return json.dumps(ram_usage)
+
+    @staticmethod
+    def get_ram_details(mem=None) -> Optional[str]:
+        """Detailed memory breakdown (in MB) read from /proc/meminfo via psutil: cache, buffers, swap..."""
+        to_mb = lambda b: round(b / (1024 ** 2), 1)
+        mem = mem or psutil.virtual_memory()
+        details = {
+            "total": to_mb(mem.total),
+            "used": to_mb(mem.used),
+            "free": to_mb(mem.free),
+            "available": to_mb(mem.available),
+        }
+        # Linux-only fields (absent on other platforms)
+        for field in ("cached", "buffers", "shared", "slab"):
+            value = getattr(mem, field, None)
+            if value is not None:
+                details[field] = to_mb(value)
+        try:
+            swap = psutil.swap_memory()
+            details["swap_total"] = to_mb(swap.total)
+            details["swap_used"] = to_mb(swap.used)
+        except Exception:
+            pass
+        return json.dumps(details)
 
     @classmethod
     def get_ollama_ram_usage(cls) -> float:
@@ -814,11 +840,13 @@ class SystemMetricsCollector:
             pass
 
         # 5. RAM Usage
+        ram_details_json = None
         try:
             mem = psutil.virtual_memory()
             ram_total_mb = round(mem.total / (1024 ** 2), 1)
             ram_usage_mb = round(mem.used / (1024 ** 2), 1)
             ram_usage_percent = round(mem.percent, 2)
+            ram_details_json = cls.get_ram_details(mem)
         except Exception:
             ram_total_mb = 0.0
             ram_usage_mb = 0.0
@@ -896,5 +924,6 @@ class SystemMetricsCollector:
             power_usage_w=power_usage_w,
             disk_services_json=disk_services_json,
             cpu_name=cpu_name,
-            ram_services_json=ram_services_json
+            ram_services_json=ram_services_json,
+            ram_details_json=ram_details_json
         )

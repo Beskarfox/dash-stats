@@ -28,7 +28,8 @@ class MetricsRepository:
             power_usage_w=metric.power_usage_w,
             disk_services_json=metric.disk_services_json,
             cpu_name=metric.cpu_name,
-            ram_services_json=metric.ram_services_json
+            ram_services_json=metric.ram_services_json,
+            ram_details_json=metric.ram_details_json
         )
         self.db.add(db_metric)
         self.db.commit()

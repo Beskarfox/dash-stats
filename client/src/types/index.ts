@@ -20,6 +20,7 @@ export interface SystemMetric {
   disk_services_json?: string;
   cpu_name?: string;
   ram_services_json?: string;
+  ram_details_json?: string;
 }
 
 export interface MinecraftStatus {
