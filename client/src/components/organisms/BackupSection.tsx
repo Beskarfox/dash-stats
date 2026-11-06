@@ -74,7 +74,7 @@ export const BackupSection = ({ status, loading }: BackupSectionProps) => {
           title: "Minecraft",
           icon: <Sword className="h-5 w-5" />,
           color: "cyan",
-          bg: "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-[0_0_15px_rgba(6,182,212,0.15)]",
+          bg: "text-cyan-400",
           glow: "rgba(6, 182, 212, 0.12)"
         };
       case "outline":
@@ -82,7 +82,7 @@ export const BackupSection = ({ status, loading }: BackupSectionProps) => {
           title: "Outline Docs",
           icon: <BookOpen className="h-5 w-5" />,
           color: "indigo",
-          bg: "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.15)]",
+          bg: "text-indigo-400",
           glow: "rgba(99, 102, 241, 0.12)"
         };
       case "nextcloud":
@@ -90,7 +90,7 @@ export const BackupSection = ({ status, loading }: BackupSectionProps) => {
           title: "Nextcloud",
           icon: <Cloud className="h-5 w-5" />,
           color: "blue",
-          bg: "bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.15)]",
+          bg: "text-blue-400",
           glow: "rgba(59, 130, 246, 0.12)"
         };
       default:
@@ -98,7 +98,7 @@ export const BackupSection = ({ status, loading }: BackupSectionProps) => {
           title: serviceName,
           icon: <Database className="h-5 w-5" />,
           color: "zinc",
-          bg: "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20",
+          bg: "text-zinc-400",
           glow: "rgba(255, 255, 255, 0.05)"
         };
     }
@@ -129,7 +129,7 @@ export const BackupSection = ({ status, loading }: BackupSectionProps) => {
                 {/* Header block */}
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3.5">
-                    <div className={`p-3 rounded-2xl ${cfg.bg}`}>
+                    <div className={`shrink-0 ${cfg.bg}`}>
                       {cfg.icon}
                     </div>
                     <span className="font-poppins text-lg font-bold tracking-wide text-foreground/90 leading-tight">

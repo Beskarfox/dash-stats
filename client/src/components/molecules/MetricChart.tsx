@@ -174,7 +174,7 @@ export const MetricChart = ({ title, data, dataKey, color = "#2563eb", unit = ""
 
   if (!isMounted) {
     return (
-      <Card className="col-span-1 rounded-xl bg-card/40 transition-all duration-300 shadow-xl animate-pulse">
+      <Card className="col-span-1 rounded-xl border-t border-white/10 bg-card/40 transition-all duration-300 shadow-xl animate-pulse">
         <CardHeader className="pb-4">
           <CardTitle className="text-xs font-semibold tracking-wider text-muted-foreground/80 uppercase">{title}</CardTitle>
         </CardHeader>
@@ -189,7 +189,7 @@ export const MetricChart = ({ title, data, dataKey, color = "#2563eb", unit = ""
 
   return (
     <>
-      <Card className="col-span-1 rounded-xl bg-card/40 transition-all duration-300 shadow-xl group relative overflow-hidden">
+      <Card className="col-span-1 rounded-xl border-t border-white/10 bg-card/40 transition-all duration-300 shadow-xl group relative overflow-hidden">
         <CardHeader className="pb-4 flex flex-row items-center justify-between space-y-0 relative z-20">
           <CardTitle className="text-xs font-semibold tracking-wider text-muted-foreground/80 uppercase select-none">{title}</CardTitle>
           <button
@@ -274,7 +274,7 @@ export const MetricChart = ({ title, data, dataKey, color = "#2563eb", unit = ""
           {/* Modal Content Card */}
           <div
             onClick={(e) => e.stopPropagation()}
-            className={`rounded-2xl w-full max-w-5xl p-6 md:p-8 shadow-2xl relative flex flex-col gap-6 overflow-hidden transition-all duration-300 z-10 ${
+            className={`rounded-2xl border-t border-white/10 w-full max-w-5xl p-6 md:p-8 shadow-2xl relative flex flex-col gap-6 overflow-hidden transition-all duration-300 z-10 ${
               isClosing ? "animate-out fade-out zoom-out-95" : "animate-in fade-in zoom-in-95"
             }`}
           >

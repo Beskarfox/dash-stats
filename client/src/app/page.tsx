@@ -178,7 +178,7 @@ export default function Home() {
   );
 
   const historyToolbar = (
-    <div className="flex bg-white/5 p-1 rounded-xl backdrop-blur-md shrink-0">
+    <div className="flex bg-white/5 p-1 rounded-xl border-t border-white/10 backdrop-blur-md shrink-0">
       {(["all", "30d", "7d", "24h"] as const).map((range) => {
         const labels = {
           "24h": "24 heures",

@@ -151,7 +151,11 @@
   -webkit-backdrop-filter: blur(16px) saturate(120%) !important;
 }
 
-.glass-card-blended::before, 
+.glass-card-blended {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-card-blended::before,
 .glass-card-blended::after,
 .glass-btn-blended::before,
 .glass-btn-blended::after {
