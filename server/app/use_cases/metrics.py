@@ -15,8 +15,8 @@ class MetricsUseCases:
         return db_metric
 
     def collect_live(self):
-        # Collect live system metrics without saving to DB
-        return SystemMetricsCollector.collect()
+        # Collect live system metrics without saving to DB (no energy accounting)
+        return SystemMetricsCollector.collect(track_energy=False)
 
     def get_latest(self):
         return self.repository.get_latest()

@@ -1,4 +1,5 @@
 import { MetricCard } from "@/components/atoms/MetricCard";
+import { InfoTooltip } from "@/components/atoms/InfoTooltip";
 import { SystemMetric, BackupsStatusResponse } from "@/types";
 import { Cpu, HardDrive, ChartNoAxesColumnIncreasing, MemoryStick, Zap, ArrowUpDown } from "lucide-react";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -65,11 +66,61 @@ export const MetricsOverview = ({ latest, backupsStatus }: MetricsOverviewProps)
     ].filter(item => item.name === "Disponible" || (item.name === "Autres" ? item.value >= 0.001 : item.value > 0));
   }
 
+  // Real measured power only: no value is shown for rows without a RAPL source
+  const hasMeasuredPower = !!latest.power_source && latest.power_usage_w !== null && latest.power_usage_w !== undefined;
+
   // 2. Calculate RAM memory breakdown
   const ramUsed = (latest.ram_usage_mb || 0.0) / 1024.0;
   const ramTotal = (latest.ram_total_mb || 1.0) / 1024.0;
   const ramFree = Math.max(0, parseFloat((ramTotal - ramUsed).toFixed(2)));
   const ramPercent = latest.ram_usage_percent.toFixed(1);
+
+  // Detailed memory breakdown from /proc/meminfo (MB), shown in the RAM info tooltips
+  let ramDetails: Record<string, number> | null = null;
+  try {
+    ramDetails = latest.ram_details_json ? JSON.parse(latest.ram_details_json) : null;
+  } catch (e) {
+    console.error("Failed to parse RAM details JSON:", e);
+  }
+  const formatMb = (mb: number) => (mb >= 1024 ? `${(mb / 1024).toFixed(1)} Go` : `${mb.toFixed(0)} Mo`);
+  const ramDetailRows: { label: string; hint: string; value?: number; extra?: string }[] = ramDetails
+    ? [
+        { label: "Utilisée", hint: "mémoire des applications", value: ramDetails.used },
+        { label: "Cache", hint: "fichiers en cache, libérable", value: ramDetails.cached },
+        { label: "Buffers", hint: "tampons disque du noyau", value: ramDetails.buffers },
+        { label: "Partagée", hint: "tmpfs / mémoire partagée", value: ramDetails.shared },
+        { label: "Slab", hint: "structures du noyau", value: ramDetails.slab },
+        { label: "Libre", hint: "totalement inutilisée", value: ramDetails.free },
+        { label: "Disponible", hint: "libre + cache récupérable", value: ramDetails.available },
+        {
+          label: "Swap",
+          hint: "mémoire échangée sur disque",
+          value: ramDetails.swap_used,
+          extra: ramDetails.swap_total !== undefined ? ` / ${formatMb(ramDetails.swap_total)}` : undefined,
+        },
+      ].filter(row => row.value !== undefined)
+    : [];
+
+  // Rows of the "Disponible" tooltip: what makes up the memory not held by applications
+  const availableDetailRows = ramDetailRows.filter(row => ["Libre", "Cache", "Buffers", "Disponible"].includes(row.label));
+
+  // Shared layout of the RAM tooltips: label + short hint, value on the right
+  const renderDetailRows = (rows: typeof ramDetailRows) => (
+    <div className="flex flex-col gap-1.5">
+      {rows.map(row => (
+        <div key={row.label} className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="font-semibold text-foreground/90 leading-tight">{row.label}</p>
+            <p className="text-[11px] text-muted-foreground/60 leading-tight">{row.hint}</p>
+          </div>
+          <span className="font-extrabold text-foreground tabular-nums whitespace-nowrap">
+            {formatMb(row.value ?? 0)}
+            {row.extra && <span className="font-semibold text-muted-foreground/80">{row.extra}</span>}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
 
   let ramServicesData: { name: string; value: number; color: string }[] = [];
   try {
@@ -189,7 +240,17 @@ export const MetricsOverview = ({ latest, backupsStatus }: MetricsOverviewProps)
                     <MemoryStick className="h-6 w-6" />
                   </div>
                   <div className="flex flex-col">
-                    <CardTitle className="text-base font-bold tracking-wide text-foreground/90">Mémoire</CardTitle>
+                    <div className="flex items-center gap-1.5">
+                      <CardTitle className="text-base font-bold tracking-wide text-foreground/90">Mémoire</CardTitle>
+                      {ramDetailRows.length > 0 && (
+                        <InfoTooltip label="Détail de la mémoire">
+                          <p className="font-medium text-muted-foreground/80 mb-2">
+                            Détail de la RAM · {formatMb(ramDetails?.total ?? 0)}
+                          </p>
+                          {renderDetailRows(ramDetailRows)}
+                        </InfoTooltip>
+                      )}
+                    </div>
                     <span className="text-sm text-muted-foreground/55 font-semibold -mt-0.5">RAM</span>
                   </div>
                 </div>
@@ -222,6 +283,12 @@ export const MetricsOverview = ({ latest, backupsStatus }: MetricsOverviewProps)
                             ? `${item.value.toFixed(1)} Go`
                             : `${(item.value * 1024).toFixed(0)} Mo`}
                       </span>
+                      {item.name === "Disponible" && ramDetails && (
+                        <InfoTooltip label="Détail de la mémoire disponible">
+                          <p className="font-medium text-muted-foreground/80 mb-2">Mémoire disponible</p>
+                          {renderDetailRows(availableDetailRows)}
+                        </InfoTooltip>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -456,10 +523,16 @@ export const MetricsOverview = ({ latest, backupsStatus }: MetricsOverviewProps)
         <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
           <MetricCard
             title="Puissance"
-            value={(latest.power_usage_w || 0).toFixed(1)}
-            unit=" W"
+            value={hasMeasuredPower ? latest.power_usage_w!.toFixed(1) : "—"}
+            unit={hasMeasuredPower ? " W" : undefined}
             icon={<Zap className="h-6 w-6" />}
-            description="Consommation estimée"
+            description={
+              !hasMeasuredPower
+                ? "Mesure indisponible (RAPL non accessible)"
+                : latest.power_source === "rapl-psys"
+                  ? "Mesurée par RAPL (plateforme), hors disques et alimentation"
+                  : "Mesurée par RAPL (CPU), hors disques et alimentation"
+            }
             color="yellow"
           />
           <MetricCard

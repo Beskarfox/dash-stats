@@ -3,8 +3,18 @@ import struct
 import json
 import os
 import time
+import re
 from collections import deque
 from typing import Dict, Any, List
+
+# Player IP addresses in Paper logs, e.g. "Steve[/203.0.113.7:51234] logged in" (IPv4 or IPv6).
+_PLAYER_ADDRESS_RE = re.compile(r"\[/[^\]\s]*\]?[^\]\s]*\]")
+_IPV4_RE = re.compile(r"\b\d{1,3}(?:\.\d{1,3}){3}(?::\d{1,5})?\b")
+
+def mask_ips(line: str) -> str:
+    """Hides IP addresses so the public /api/minecraft endpoint does not leak players' IPs."""
+    line = _PLAYER_ADDRESS_RE.sub("[/***]", line)
+    return _IPV4_RE.sub("***", line)
 
 class MinecraftPinger:
     def __init__(self, host: str = "minecraft-paper", port: int = 25565, log_path: str = "/opt/minecraft/data/logs/latest.log"):
@@ -141,6 +151,7 @@ class MinecraftPinger:
                     if "issued server command" in cleaned.lower():
                         continue
                     cleaned = cleaned.replace("[Not Secure] ", "")
+                    cleaned = mask_ips(cleaned)
                     filtered_lines.append(cleaned)
                 
                 # Return the last max_lines

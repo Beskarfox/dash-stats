@@ -16,10 +16,15 @@ export interface SystemMetric {
   net_rx_mb: number;
   net_tx_mb: number;
   uptime: string;
-  power_usage_w: number;
+  // Measured power (RAPL), null when unavailable. Without power_source, the row predates real
+  // measurements and its value was estimated: it must not be displayed as a measurement.
+  power_usage_w: number | null;
+  power_source?: "rapl-psys" | "rapl-package" | null;
+  energy_wh?: number | null;
   disk_services_json?: string;
   cpu_name?: string;
   ram_services_json?: string;
+  ram_details_json?: string;
 }
 
 export interface MinecraftStatus {

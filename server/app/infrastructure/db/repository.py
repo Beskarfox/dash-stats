@@ -14,6 +14,7 @@ class MetricsRepository:
             cpu_temp=metric.cpu_temp,
             cpu_usage=metric.cpu_usage,
             disk_temp=metric.disk_temp,
+            disk_sata_temp=metric.disk_sata_temp,
             disk_usage_gb=metric.disk_usage_gb,
             disk_total_gb=metric.disk_total_gb,
             disk_sata_usage_gb=metric.disk_sata_usage_gb,
@@ -25,9 +26,12 @@ class MetricsRepository:
             net_tx_mb=metric.net_tx_mb,
             uptime=metric.uptime,
             power_usage_w=metric.power_usage_w,
+            power_source=metric.power_source,
+            energy_wh=metric.energy_wh,
             disk_services_json=metric.disk_services_json,
             cpu_name=metric.cpu_name,
-            ram_services_json=metric.ram_services_json
+            ram_services_json=metric.ram_services_json,
+            ram_details_json=metric.ram_details_json
         )
         self.db.add(db_metric)
         self.db.commit()

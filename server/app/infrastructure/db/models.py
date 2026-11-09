@@ -22,10 +22,15 @@ class SystemMetric(Base):
     net_rx_mb = Column(Float)
     net_tx_mb = Column(Float)
     uptime = Column(String)
-    power_usage_w = Column(Float, default=0.0)
+    # Measured power (RAPL), NULL when no measurement is available. Rows without power_source
+    # predate real measurements and hold estimated values.
+    power_usage_w = Column(Float, nullable=True)
+    power_source = Column(String, nullable=True)
+    energy_wh = Column(Float, nullable=True)
     disk_services_json = Column(String, nullable=True)
     cpu_name = Column(String, nullable=True)
     ram_services_json = Column(String, nullable=True)
+    ram_details_json = Column(String, nullable=True)
 
 
 class BackupLog(Base):
@@ -38,3 +43,12 @@ class BackupLog(Base):
     size_bytes = Column(Integer, default=0)
     files_json = Column(String, nullable=True)
     error_message = Column(String, nullable=True)
+
+
+class BackupRequest(Base):
+    """Manual backup requested through the API, picked up by the separate backup worker."""
+    __tablename__ = "backup_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    service = Column(String, index=True)
+    requested_at = Column(DateTime, default=datetime.utcnow)

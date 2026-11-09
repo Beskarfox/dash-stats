@@ -67,7 +67,7 @@ export const ServicesSection = ({ latest }: ServicesSectionProps) => {
       icon: <Globe className="h-6 w-6" />,
       color: "emerald",
       glowColor: "rgba(16, 185, 129, 0.12)",
-      iconBg: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+      iconBg: "text-emerald-400",
       hasMetrics: true,
       ram: getServiceRAM("Beskarfox"),
       disk: getServiceDisk("Beskarfox")
@@ -81,7 +81,7 @@ export const ServicesSection = ({ latest }: ServicesSectionProps) => {
       icon: <Cloud className="h-6 w-6" />,
       color: "blue",
       glowColor: "rgba(59, 130, 246, 0.12)",
-      iconBg: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+      iconBg: "text-blue-400",
       hasMetrics: true,
       ram: getServiceRAM("Nextcloud"),
       disk: getServiceDisk("Nextcloud")
@@ -95,7 +95,7 @@ export const ServicesSection = ({ latest }: ServicesSectionProps) => {
       icon: <Activity className="h-6 w-6" />,
       color: "purple",
       glowColor: "rgba(168, 85, 247, 0.12)",
-      iconBg: "bg-purple-500/10 text-purple-400 border border-purple-500/20",
+      iconBg: "text-purple-400",
       hasMetrics: true,
       ram: getServiceRAM("Stats"),
       disk: getServiceDisk("Stats")
@@ -109,7 +109,7 @@ export const ServicesSection = ({ latest }: ServicesSectionProps) => {
       icon: <BookOpen className="h-6 w-6" />,
       color: "indigo",
       glowColor: "rgba(99, 102, 241, 0.12)",
-      iconBg: "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20",
+      iconBg: "text-indigo-400",
       hasMetrics: true,
       ram: getServiceRAM("Outline"),
       disk: getServiceDisk("Outline")
@@ -135,13 +135,13 @@ export const ServicesSection = ({ latest }: ServicesSectionProps) => {
     const color = colors[index % colors.length];
     
     const colorMaps: Record<string, { glow: string; bg: string }> = {
-      blue: { glow: "rgba(59, 130, 246, 0.12)", bg: "bg-blue-500/10 text-blue-400 border border-blue-500/20" },
-      purple: { glow: "rgba(168, 85, 247, 0.12)", bg: "bg-purple-500/10 text-purple-400 border border-purple-500/20" },
-      indigo: { glow: "rgba(99, 102, 241, 0.12)", bg: "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20" },
-      emerald: { glow: "rgba(16, 185, 129, 0.12)", bg: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" },
-      orange: { glow: "rgba(249, 74, 41, 0.12)", bg: "bg-orange-500/10 text-orange-400 border border-orange-500/20" },
-      cyan: { glow: "rgba(6, 182, 212, 0.12)", bg: "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20" },
-      amber: { glow: "rgba(245, 158, 11, 0.12)", bg: "bg-amber-500/10 text-amber-400 border border-amber-500/20" },
+      blue: { glow: "rgba(59, 130, 246, 0.12)", bg: "text-blue-400" },
+      purple: { glow: "rgba(168, 85, 247, 0.12)", bg: "text-purple-400" },
+      indigo: { glow: "rgba(99, 102, 241, 0.12)", bg: "text-indigo-400" },
+      emerald: { glow: "rgba(16, 185, 129, 0.12)", bg: "text-emerald-400" },
+      orange: { glow: "rgba(249, 74, 41, 0.12)", bg: "text-orange-400" },
+      cyan: { glow: "rgba(6, 182, 212, 0.12)", bg: "text-cyan-400" },
+      amber: { glow: "rgba(245, 158, 11, 0.12)", bg: "text-amber-400" },
     };
     const isOllama = key.toLowerCase() === "ollama";
     const serviceColor = isOllama ? "amber" : color;
@@ -182,7 +182,7 @@ export const ServicesSection = ({ latest }: ServicesSectionProps) => {
         <div>
           {/* Header Block */}
           <div className="flex items-start gap-4 mb-6">
-            <div className="p-2.5 rounded-xl shrink-0">
+            <div className={`p-2.5 shrink-0 ${service.iconBg}`}>
               {service.icon}
             </div>
             <div className="flex flex-col">

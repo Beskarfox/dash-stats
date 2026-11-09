@@ -16,16 +16,38 @@ services:
       - /opt:/opt:ro
       - /usr/share/ollama/.ollama:/usr/share/ollama/.ollama:ro
       - /sys:/sys:ro
+      # RAPL energy counters (real power): Docker masks them under /sys, see collector.RAPL_ROOTS
+      - /sys/devices/virtual/powercap/intel-rapl:/host/rapl:ro
       - /proc:/host/proc:ro
-      - /mnt/backup:/mnt/backup:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /mnt/ssdsata/backups:/mnt/ssdsata/backups:ro
     environment:
-      - API_KEY=${API_KEY:-your-secret-key}
+      # No Docker socket: read-only Docker API through docker-socket-proxy (see below).
+      # Staging runs no backup worker, so backups are never written from staging.
+      - DOCKER_HOST=tcp://docker-socket-proxy-staging:2375
+      - API_KEY=${API_KEY:?API_KEY must be set in .env (e.g. openssl rand -hex 32)}
       - WATCHFILES_FORCE_POLLING=true
     command: uvicorn main:app --reload --reload-exclude "data/*" --reload-exclude "*.db" --host 0.0.0.0 --port 8000
     restart: always
+    depends_on:
+      - docker-socket-proxy
     networks:
       - proxy
+      - docker-api
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    container_name: docker-socket-proxy-staging
+    environment:
+      - CONTAINERS=1
+      - SYSTEM=1
+      - POST=0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - docker-api
+    restart: always
     labels:
       - "com.centurylinklabs.watchtower.enable=false"
 
@@ -66,3 +88,5 @@ services:
 networks:
   proxy:
     external: true
+  docker-api:
+    internal: true

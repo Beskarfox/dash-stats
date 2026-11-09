@@ -10,24 +10,29 @@ services:
       - .env
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    # Public API: no Docker socket. Docker is reached read-only through docker-socket-proxy,
+    # and backups are only read here (they are written by backup-worker).
     volumes:
       - ./server-data:/app/data
-      - /mnt/backup:/mnt/backup
+      - /mnt/ssdsata/backups:/mnt/ssdsata/backups:ro
       - /opt:/opt:ro
       - /usr/share/ollama/.ollama:/usr/share/ollama/.ollama:ro
       - /sys:/sys:ro
+      # RAPL energy counters (real power): Docker masks them under /sys, see collector.RAPL_ROOTS
+      - /sys/devices/virtual/powercap/intel-rapl:/host/rapl:ro
       - /proc:/host/proc:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
-      - API_KEY=${API_KEY:-your-secret-key}
+      - DOCKER_HOST=tcp://docker-socket-proxy:2375
+      - API_KEY=${API_KEY:?API_KEY must be set in .env (e.g. openssl rand -hex 32)}
       - COLLECTION_INTERVAL_SECONDS=${COLLECTION_INTERVAL_SECONDS:-3600}
-      - POWER_BASE_W=${POWER_BASE_W:-5.0}
-      - POWER_MAX_W=${POWER_MAX_W:-15.0}
       - MINECRAFT_HOST=${MINECRAFT_HOST:-minecraft-paper}
       - MINECRAFT_PORT=${MINECRAFT_PORT:-25565}
       - MINECRAFT_LOG_PATH=${MINECRAFT_LOG_PATH:-/opt/minecraft/data/logs/latest.log}
+    depends_on:
+      - docker-socket-proxy
     networks:
       - proxy
+      - docker-api
     restart: always
     labels:
       - "com.centurylinklabs.watchtower.enable=false"
@@ -37,6 +42,46 @@ services:
       - "traefik.http.routers.stats-server.entrypoints=websecure"
       - "traefik.http.routers.stats-server.tls=true"
       - "traefik.http.services.stats-server.loadbalancer.server.port=8000"
+  # Read-only Docker API for the public server: only GET on /containers and /system
+  # (container list/stats, system df). No exec, no container creation, no POST at all.
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.3.0
+    container_name: stats-docker-socket-proxy
+    environment:
+      - CONTAINERS=1
+      - SYSTEM=1
+      - POST=0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - docker-api
+    restart: always
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+
+  # Runs scheduled and API-requested backups. It needs the full Docker socket (docker exec,
+  # docker run -v), i.e. root-equivalent access, so it is NOT exposed: no Traefik, no ports,
+  # not on the proxy network. It shares the SQLite database with the server.
+  backup-worker:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    image: stats-server
+    container_name: stats-backup-worker
+    command: ["python", "backup_worker.py"]
+    depends_on:
+      - server
+    env_file:
+      - .env
+    volumes:
+      - ./server-data:/app/data
+      - /mnt/ssdsata/backups:/mnt/ssdsata/backups
+      - /opt:/opt:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: always
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+
   client:
     build:
       context: ./client
@@ -62,3 +107,5 @@ services:
 networks:
   proxy:
     external: true
+  docker-api:
+    internal: true

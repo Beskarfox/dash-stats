@@ -13,7 +13,7 @@ VENV = .venv
 VENV_ACTIVATE = $(VENV)/bin/activate
 PORT_SERVER = 8000
 PORT_CLIENT = 3000
-API_KEY ?= your-secret-key
+API_KEY ?= $(shell grep -E '^API_KEY=' .env 2>/dev/null | cut -d= -f2-)
 
 # Shell configurations
 .PHONY: help install run-server run-client run-dev dev docker-up docker-down docker-logs send-mock clean

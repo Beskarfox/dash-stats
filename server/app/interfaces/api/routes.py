@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Header, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Header, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
-import os
+import secrets
 from app.core.database import get_db
 from app.interfaces.api import schemas
 from app.use_cases.metrics import MetricsUseCases
@@ -12,10 +12,9 @@ from app.infrastructure.system.backup_manager import BackupManager
 
 router = APIRouter()
 
-API_KEY = os.getenv("API_KEY", "your-secret-key")
-
 async def verify_api_key(x_api_key: str = Header(...)):
-    if x_api_key != API_KEY:
+    # Constant-time comparison against the key from settings (validated at startup)
+    if not secrets.compare_digest(x_api_key.encode(), settings.API_KEY.encode()):
         raise HTTPException(status_code=403, detail="Could not validate credentials")
     return x_api_key
 
@@ -23,25 +22,12 @@ async def verify_api_key(x_api_key: str = Header(...)):
 @router.post("/metrics", response_model=schemas.SystemMetric)
 def create_metric(metric: schemas.SystemMetricCreate, db: Session = Depends(get_db), api_key: str = Depends(verify_api_key)):
     use_cases = MetricsUseCases(db)
-    metric_domain = SystemMetricDomain(
-        device_name=metric.device_name,
-        cpu_temp=metric.cpu_temp,
-        cpu_usage=metric.cpu_usage,
-        disk_temp=metric.disk_temp,
-        disk_usage_gb=metric.disk_usage_gb,
-        disk_total_gb=metric.disk_total_gb,
-        ram_usage_mb=metric.ram_usage_mb,
-        ram_total_mb=metric.ram_total_mb,
-        ram_usage_percent=metric.ram_usage_percent,
-        net_rx_mb=metric.net_rx_mb,
-        net_tx_mb=metric.net_tx_mb,
-        uptime=metric.uptime,
-        power_usage_w=metric.power_usage_w
-    )
+    # Map every field of the schema (disk_sata_*, disk_services_json, cpu_name...) to the domain model.
+    metric_domain = SystemMetricDomain(**metric.model_dump())
     return use_cases.repository.add(metric_domain)
 
 @router.get("/metrics", response_model=List[schemas.SystemMetric])
-def read_metrics(limit: int = 100, db: Session = Depends(get_db)):
+def read_metrics(limit: int = Query(100, ge=1, le=10000), db: Session = Depends(get_db)):
     use_cases = MetricsUseCases(db)
     return use_cases.get_history(limit)
 
@@ -109,8 +95,10 @@ def read_backups_history(db: Session = Depends(get_db)):
     return manager.get_backup_history()
 
 @router.post("/backups/run")
-def trigger_backup(request: schemas.BackupTriggerRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db), api_key: str = Depends(verify_api_key)):
-    manager = BackupManager(db)
+def trigger_backup(request: schemas.BackupTriggerRequest, db: Session = Depends(get_db), api_key: str = Depends(verify_api_key)):
+    # Backups are run by the separate backup worker (it alone has full Docker socket access):
+    # this endpoint only queues a request that the worker picks up within a few seconds.
+    from app.infrastructure.db.models import BackupRequest
     service_limits = {
         "minecraft": settings.MAX_BACKUPS_MINECRAFT,
         "outline": settings.MAX_BACKUPS_OUTLINE,
@@ -118,14 +106,16 @@ def trigger_backup(request: schemas.BackupTriggerRequest, background_tasks: Back
     }
     if request.service == "all":
         services = [s for s in ["minecraft", "outline", "nextcloud"] if service_limits.get(s, 1) != 0]
-        for s in services:
-            background_tasks.add_task(manager.run_backup, s)
-        return {"status": "success", "message": "Backups queued for all services"}
     else:
         if request.service not in ["minecraft", "outline", "nextcloud"]:
             raise HTTPException(status_code=400, detail=f"Invalid service name: {request.service}")
         if service_limits.get(request.service, 1) == 0:
             raise HTTPException(status_code=400, detail=f"{request.service} backups are disabled (MAX_BACKUPS_{request.service.upper()}=0)")
-        background_tasks.add_task(manager.run_backup, request.service)
-        return {"status": "success", "message": f"Backup queued for {request.service}"}
+        services = [request.service]
 
+    for s in services:
+        db.add(BackupRequest(service=s))
+    db.commit()
+    if request.service == "all":
+        return {"status": "success", "message": "Backups queued for all services"}
+    return {"status": "success", "message": f"Backup queued for {request.service}"}
