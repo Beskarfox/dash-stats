@@ -651,8 +651,11 @@ class SystemMetricsCollector:
         total_rx = 0
         total_tx = 0
         
-        # 1. Try reading from host's proc fs if mounted at /host/proc
-        proc_net_dev = '/host/proc/net/dev'
+        # 1. Try reading from host's proc fs if mounted at /host/proc.
+        # /proc/net is a symlink to /proc/self/net, and "self" is this (containerized) process,
+        # so /host/proc/net/dev would only show the container's own network namespace.
+        # PID 1 of the host's procfs is the host init, whose namespace holds the real interfaces.
+        proc_net_dev = '/host/proc/1/net/dev'
         if not os.path.exists(proc_net_dev):
             proc_net_dev = '/proc/net/dev'
             
