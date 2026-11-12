@@ -36,6 +36,14 @@ class SystemMetric(SystemMetricBase):
     class Config:
         from_attributes = True
 
+class SataDiskStats(BaseModel):
+    temp_c: float
+    usage_gb: float
+    total_gb: float
+    free_gb: float
+    usage_percent: float
+    timestamp: datetime
+
 class MinecraftStatus(BaseModel):
     online: bool
     version: Optional[str] = None

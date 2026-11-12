@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Header, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import secrets
+from datetime import datetime
 from app.core.database import get_db
 from app.interfaces.api import schemas
 from app.use_cases.metrics import MetricsUseCases
@@ -45,6 +46,28 @@ def read_latest_metric(db: Session = Depends(get_db)):
         return use_cases.collect_live()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to collect live metrics and no metrics in database: {str(e)}")
+
+@router.get("/disks/sata", response_model=schemas.SataDiskStats)
+def read_sata_disk_stats(db: Session = Depends(get_db), api_key: str = Depends(verify_api_key)):
+    """Secondary SSD (SATA) stats only, for other apps on the same Docker network."""
+    use_cases = MetricsUseCases(db)
+    metric = use_cases.get_latest()
+    if metric is None:
+        try:
+            metric = use_cases.collect_live()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to collect SATA disk stats: {str(e)}")
+
+    total = metric.disk_sata_total_gb or 0.0
+    used = metric.disk_sata_usage_gb or 0.0
+    return schemas.SataDiskStats(
+        temp_c=metric.disk_sata_temp or 0.0,
+        usage_gb=used,
+        total_gb=total,
+        free_gb=round(max(total - used, 0.0), 1),
+        usage_percent=round(used / total * 100, 1) if total > 0 else 0.0,
+        timestamp=getattr(metric, "timestamp", None) or datetime.utcnow(),
+    )
 
 @router.post("/metrics/collect", response_model=schemas.SystemMetric)
 def force_collect(db: Session = Depends(get_db), api_key: str = Depends(verify_api_key)):
