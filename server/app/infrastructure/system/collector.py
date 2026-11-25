@@ -317,6 +317,24 @@ class SystemMetricsCollector:
             pass
         return json.dumps(details)
 
+    @staticmethod
+    def is_ollama_process(comm: str, argv: List[str]) -> bool:
+        """
+        Tell whether a process belongs to Ollama: the server itself (`ollama serve`), or the runner that holds the
+        model in memory. The runner is `ollama_llama_server` in older releases and `llama-server` installed under an
+        `ollama` directory (e.g. /usr/local/lib/ollama/llama-server) in recent ones.
+        """
+        comm = (comm or "").lower()
+        exe = (argv[0] if argv else "").strip().lower()
+        exe_name = os.path.basename(exe)
+
+        if comm.startswith("ollama") or exe_name.startswith("ollama"):
+            return True
+        if any("ollama_llama_server" in arg.lower() for arg in argv):
+            return True
+        # Generic runner name: only Ollama's when the binary lives in an ollama directory
+        return exe_name == "llama-server" and "/ollama/" in exe
+
     @classmethod
     def get_ollama_ram_usage(cls) -> float:
         """
@@ -343,25 +361,14 @@ class SystemMetricsCollector:
                             with open(comm_path, "r", errors="ignore") as f:
                                 comm = f.read().strip().lower()
 
-                        cmd_first = ""
-                        has_runner = False
+                        argv = []
                         cmdline_path = os.path.join(pid_dir, "cmdline")
                         if os.path.exists(cmdline_path):
                             with open(cmdline_path, "rb") as f:
                                 raw = f.read().decode("utf-8", errors="ignore")
-                                parts = raw.split("\x00")
-                                if parts and parts[0]:
-                                    cmd_first = os.path.basename(parts[0].strip().lower())
-                                if any("ollama_llama_server" in p.lower() for p in parts):
-                                    has_runner = True
+                                argv = [part for part in raw.split("\x00") if part]
 
-                        is_ollama = False
-                        if comm in ("ollama", "ollama_llama_se", "ollama_llama_server") or comm.startswith("ollama"):
-                            is_ollama = True
-                        elif cmd_first in ("ollama", "ollama_llama_server") or cmd_first.startswith("ollama"):
-                            is_ollama = True
-                        elif has_runner:
-                            is_ollama = True
+                        is_ollama = cls.is_ollama_process(comm, argv)
 
                         if is_ollama:
                             # Read resident memory (VmRSS) from /status
@@ -436,14 +443,7 @@ class SystemMetricsCollector:
             psutil_mb = 0.0
             for proc in psutil.process_iter(['name', 'cmdline', 'memory_info']):
                 try:
-                    p_name = (proc.info.get('name') or '').lower()
-                    p_cmd = proc.info.get('cmdline') or []
-                    p_bin = os.path.basename(p_cmd[0].lower()) if p_cmd else ''
-                    if (
-                        p_name.startswith('ollama')
-                        or p_bin.startswith('ollama')
-                        or any('ollama_llama_server' in a.lower() for a in p_cmd)
-                    ):
+                    if cls.is_ollama_process(proc.info.get('name') or '', proc.info.get('cmdline') or []):
                         mem = proc.info.get('memory_info')
                         if mem and hasattr(mem, 'rss'):
                             psutil_mb += mem.rss / (1024.0 * 1024.0)
