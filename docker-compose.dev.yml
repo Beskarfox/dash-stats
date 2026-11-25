@@ -66,7 +66,7 @@ services:
     environment:
       - BACKEND_API_URL=http://stats-server-staging:8000
       - NODE_ENV=development
-      - ALLOWED_DEV_ORIGINS=${ALLOWED_DEV_ORIGINS:-dev.beskarfox.com,stats.staging.beskarfox.com,localhost,127.0.0.1}
+      - ALLOWED_DEV_ORIGINS=${ALLOWED_DEV_ORIGINS:-localhost,127.0.0.1}
       - WATCHPACK_POLLING=true
     command: npm run dev -- --webpack
     depends_on:
@@ -78,10 +78,10 @@ services:
       - "com.centurylinklabs.watchtower.enable=false"
       - "traefik.enable=true"
       - "traefik.docker.network=proxy"
-      - "traefik.http.routers.stats-client-staging.rule=Host(`${TRAEFIK_CLIENT_HOST:-stats.staging.beskarfox.com}`)"
+      - "traefik.http.routers.stats-client-staging.rule=Host(`${TRAEFIK_CLIENT_HOST:?TRAEFIK_CLIENT_HOST must be set in .env}`)"
       - "traefik.http.routers.stats-client-staging.entrypoints=websecure"
       - "traefik.http.routers.stats-client-staging.tls=true"
-      - "traefik.http.routers.stats-client-staging-web.rule=Host(`${TRAEFIK_CLIENT_HOST:-stats.staging.beskarfox.com}`)"
+      - "traefik.http.routers.stats-client-staging-web.rule=Host(`${TRAEFIK_CLIENT_HOST:?TRAEFIK_CLIENT_HOST must be set in .env}`)"
       - "traefik.http.routers.stats-client-staging-web.entrypoints=web"
       - "traefik.http.services.stats-client-staging.loadbalancer.server.port=3000"
 

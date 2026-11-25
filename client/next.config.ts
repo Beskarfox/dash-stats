@@ -22,7 +22,7 @@ const getGitCommitHash = () => {
 };
 
 const parseAllowedDevOrigins = () => {
-  const defaults = ["dev.beskarfox.com", "stats.staging.beskarfox.com", "localhost", "127.0.0.1"];
+  const defaults = ["localhost", "127.0.0.1"];
   const fromEnv = (process.env.ALLOWED_DEV_ORIGINS || "")
     .split(",")
     .map((origin) => origin.trim())
