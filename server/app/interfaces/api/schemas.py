@@ -1,6 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from datetime import datetime
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 
 class SystemMetricBase(BaseModel):
     device_name: Optional[str] = "default"
@@ -75,11 +75,20 @@ class OllacraftObjective(BaseModel):
     directive: Optional[str] = None
     sub_goal: Optional[str] = None
 
+    @field_validator("sub_goal", mode="before")
+    @classmethod
+    def sub_goal_to_text(cls, value):
+        # Bots older than the text format send the manager's object ({action, target, ...})
+        if isinstance(value, dict):
+            return " ".join(str(value[key]) for key in ("action", "target") if value.get(key)) or None
+        return value
+
 class OllacraftAction(BaseModel):
-    action: Optional[str] = None
-    target: Optional[str] = None
-    success: Optional[bool] = None
-    message: Optional[str] = None
+    # Filled by the bot from LLM decisions: the types are not guaranteed, so stay permissive
+    action: Optional[Any] = None
+    target: Optional[Any] = None
+    success: Optional[Any] = None
+    message: Optional[Any] = None
 
 class OllacraftWaypoint(BaseModel):
     name: str
@@ -97,6 +106,10 @@ class OllacraftEndPortal(BaseModel):
     frame_count: int = 0
     filled_count: int = 0
 
+class OllacraftSlot(BaseModel):
+    name: str
+    count: int
+
 class OllacraftStatus(BaseModel):
     # False when the bot API cannot be reached (bot stopped, API disabled, wrong key...)
     online: bool
@@ -112,10 +125,13 @@ class OllacraftStatus(BaseModel):
     objective: Optional[OllacraftObjective] = None
     quests: List[OllacraftQuest] = []
     inventory: Dict[str, int] = {}
+    # 36 entries in display order: 3 rows of 9, then the hotbar. Empty slots are null.
+    inventory_slots: List[Optional[OllacraftSlot]] = []
     last_action: Optional[OllacraftAction] = None
     recent_actions: List[OllacraftAction] = []
     decision_source: Optional[str] = None
-    milestones: Dict[str, bool] = {}
+    # Values are booleans, except e.g. active_spawn which holds a waypoint name or null
+    milestones: Dict[str, Any] = {}
     waypoints: List[OllacraftWaypoint] = []
     stronghold: Optional[OllacraftStronghold] = None
     end_portal: Optional[OllacraftEndPortal] = None
@@ -124,6 +140,9 @@ class OllacraftStatus(BaseModel):
     metrics: Dict[str, int] = {}
     tokens: Dict[str, int] = {}
     updated_at: Optional[str] = None
+    # Set when the bot is offline and the data is the last status received from it
+    stale: bool = False
+    last_seen: Optional[str] = None
 
 class BackupItem(BaseModel):
     folder: str

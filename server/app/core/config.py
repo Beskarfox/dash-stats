@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     # ollaCraft bot status API (read-only, protected by an API key). Empty URL disables the integration.
     OLLACRAFT_API_URL: str = os.getenv("OLLACRAFT_API_URL", "http://host.docker.internal:3100")
     OLLACRAFT_API_KEY: str = os.getenv("OLLACRAFT_API_KEY", "")
+    # Last status received from the bot, shown while it is offline (lives in the persistent data directory)
+    OLLACRAFT_CACHE_PATH: str = os.getenv("OLLACRAFT_CACHE_PATH", "./data/ollacraft_last_status.json")
 
     class Config:
         env_file = ".env"

@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Header, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import secrets
+import logging
+from pydantic import ValidationError
 from datetime import datetime
 from app.core.database import get_db
 from app.interfaces.api import schemas
@@ -10,9 +12,12 @@ from app.domain.models import SystemMetricDomain
 from app.core.config import settings
 from app.infrastructure.system.minecraft_pinger import MinecraftPinger
 from app.infrastructure.system.ollacraft_client import OllacraftClient
+from app.infrastructure.system.ollacraft_cache import OllacraftStatusCache
+from app.use_cases.ollacraft import OllacraftUseCases
 from app.infrastructure.system.backup_manager import BackupManager
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 async def verify_api_key(x_api_key: str = Header(...)):
     # Constant-time comparison against the key from settings (validated at startup)
@@ -111,11 +116,19 @@ def read_minecraft_status():
 @router.get("/ollacraft", response_model=schemas.OllacraftStatus)
 def read_ollacraft_status():
     # Never raises: an unreachable bot is reported as {"online": false, "error": ...}
-    client = OllacraftClient(
-        base_url=settings.OLLACRAFT_API_URL,
-        api_key=settings.OLLACRAFT_API_KEY
+    use_cases = OllacraftUseCases(
+        client=OllacraftClient(base_url=settings.OLLACRAFT_API_URL, api_key=settings.OLLACRAFT_API_KEY),
+        cache=OllacraftStatusCache(settings.OLLACRAFT_CACHE_PATH),
     )
-    return client.fetch_status()
+    status = use_cases.get_status()
+    try:
+        return schemas.OllacraftStatus(**status)
+    except ValidationError as e:
+        # A payload the schema rejects must not turn into a 500: report which field was refused instead
+        first = e.errors()[0]
+        field = ".".join(str(part) for part in first["loc"])
+        logger.warning("Invalid ollaCraft status (%s): %s", field, first["msg"])
+        return schemas.OllacraftStatus(online=False, error=f"Invalid bot status: {field} ({first['msg']})")
 
 @router.get("/backups", response_model=schemas.BackupsStatusResponse)
 def read_backups_status(db: Session = Depends(get_db)):
