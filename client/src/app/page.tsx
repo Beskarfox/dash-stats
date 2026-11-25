@@ -6,10 +6,10 @@ import { MetricsOverview } from "@/components/organisms/MetricsOverview";
 import { ServicesSection } from "@/components/organisms/ServicesSection";
 import { HistorySection } from "@/components/organisms/HistorySection";
 import { DataTable } from "@/components/molecules/DataTable";
-import { MinecraftSection } from "@/components/organisms/MinecraftSection";
+import { MinecraftTabs } from "@/components/organisms/MinecraftTabs";
 import { BackupSection } from "@/components/organisms/BackupSection";
 import { metricsService, backupsService } from "@/services/api";
-import { SystemMetric, MinecraftStatus, BackupsStatusResponse } from "@/types";
+import { SystemMetric, MinecraftStatus, OllacraftStatus, BackupsStatusResponse } from "@/types";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -25,6 +25,7 @@ export default function Home() {
   // Minecraft specific states
   const [minecraftStatus, setMinecraftStatus] = useState<MinecraftStatus | null>(null);
   const [minecraftLoading, setMinecraftLoading] = useState(false);
+  const [ollacraftStatus, setOllacraftStatus] = useState<OllacraftStatus | null>(null);
 
   // Backups specific states
   const [backupsStatus, setBackupsStatus] = useState<BackupsStatusResponse | null>(null);
@@ -65,8 +66,13 @@ export default function Home() {
   const fetchMinecraftData = async (showLoading = false) => {
     try {
       if (showLoading) setMinecraftLoading(true);
-      const data = await metricsService.getMinecraftStatus();
+      const [data, ollacraft] = await Promise.all([
+        metricsService.getMinecraftStatus(),
+        // The bot being unreachable must never break the server tab
+        metricsService.getOllacraftStatus().catch(() => null),
+      ]);
       setMinecraftStatus(data);
+      setOllacraftStatus(ollacraft);
     } catch (err) {
       console.error("Failed to fetch Minecraft status:", err);
     } finally {
@@ -232,10 +238,11 @@ export default function Home() {
       charts={<HistorySection history={history} timeRange={timeRange} />}
       table={<DataTable data={history} />}
       minecraft={
-        <MinecraftSection 
-          status={minecraftStatus} 
-          loading={minecraftLoading} 
-          onRefresh={() => fetchMinecraftData(true)} 
+        <MinecraftTabs
+          status={minecraftStatus}
+          loading={minecraftLoading}
+          onRefresh={() => fetchMinecraftData(true)}
+          ollacraft={ollacraftStatus}
         />
       }
       backups={
