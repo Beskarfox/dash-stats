@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     MINECRAFT_PORT: int = int(os.getenv("MINECRAFT_PORT", "25565"))
     MINECRAFT_LOG_PATH: str = os.getenv("MINECRAFT_LOG_PATH", "/opt/minecraft/data/logs/latest.log")
 
+    # ollaCraft bot status API (read-only, protected by an API key). Empty URL disables the integration.
+    OLLACRAFT_API_URL: str = os.getenv("OLLACRAFT_API_URL", "http://host.docker.internal:3100")
+    OLLACRAFT_API_KEY: str = os.getenv("OLLACRAFT_API_KEY", "")
+
     class Config:
         env_file = ".env"
         extra = "ignore"
