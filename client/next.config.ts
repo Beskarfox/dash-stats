@@ -36,6 +36,16 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_GIT_COMMIT: getGitCommitHash(),
   },
   allowedDevOrigins: parseAllowedDevOrigins(),
+  // The resource pack never changes between deployments: let browsers keep its textures instead of
+  // revalidating dozens of icons on every reload
+  async headers() {
+    return [
+      {
+        source: "/minecraft_assets/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
