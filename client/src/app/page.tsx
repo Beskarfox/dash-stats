@@ -162,7 +162,7 @@ export default function Home() {
     <div className="flex items-center gap-2.5">
       <div className="relative h-8 w-8 opacity-[0.65] shrink-0 select-none">
         <img
-          src="https://beskarfox.com/Assets/img/Beskarfox_TW.png"
+          src="/Beskarfox_TW.png"
           alt="Beskarfox Logo"
           className="h-full w-full object-contain"
           style={{ filter: "sepia(1) saturate(5) hue-rotate(230deg)" }}

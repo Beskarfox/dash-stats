@@ -23,9 +23,9 @@ export const metadata: Metadata = {
   title: "Stats",
   description: "Monitor your Intel NUC statistics in real-time",
   icons: {
-    icon: "https://beskarfox.com/Assets/img/Beskarfox_TW.png",
-    shortcut: "https://beskarfox.com/Assets/img/Beskarfox_TW.png",
-    apple: "https://beskarfox.com/Assets/img/Beskarfox_TW.png",
+    icon: "/Beskarfox_TW.png",
+    shortcut: "/Beskarfox_TW.png",
+    apple: "/Beskarfox_TW.png",
   },
 };
 
