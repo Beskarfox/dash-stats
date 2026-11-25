@@ -9,6 +9,7 @@ from app.use_cases.metrics import MetricsUseCases
 from app.domain.models import SystemMetricDomain
 from app.core.config import settings
 from app.infrastructure.system.minecraft_pinger import MinecraftPinger
+from app.infrastructure.system.ollacraft_client import OllacraftClient
 from app.infrastructure.system.backup_manager import BackupManager
 
 router = APIRouter()
@@ -106,6 +107,15 @@ def read_minecraft_status():
     logs = pinger.get_logs(max_lines=100)
     status["logs"] = logs
     return status
+
+@router.get("/ollacraft", response_model=schemas.OllacraftStatus)
+def read_ollacraft_status():
+    # Never raises: an unreachable bot is reported as {"online": false, "error": ...}
+    client = OllacraftClient(
+        base_url=settings.OLLACRAFT_API_URL,
+        api_key=settings.OLLACRAFT_API_KEY
+    )
+    return client.fetch_status()
 
 @router.get("/backups", response_model=schemas.BackupsStatusResponse)
 def read_backups_status(db: Session = Depends(get_db)):
