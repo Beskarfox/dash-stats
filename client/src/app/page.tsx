@@ -26,6 +26,7 @@ export default function Home() {
   const [minecraftStatus, setMinecraftStatus] = useState<MinecraftStatus | null>(null);
   const [minecraftLoading, setMinecraftLoading] = useState(false);
   const [ollacraftStatus, setOllacraftStatus] = useState<OllacraftStatus | null>(null);
+  const [ollacraftError, setOllacraftError] = useState<string | null>(null);
 
   // Backups specific states
   const [backupsStatus, setBackupsStatus] = useState<BackupsStatusResponse | null>(null);
@@ -69,10 +70,18 @@ export default function Home() {
       const [data, ollacraft] = await Promise.all([
         metricsService.getMinecraftStatus(),
         // The bot being unreachable must never break the server tab
-        metricsService.getOllacraftStatus().catch(() => null),
+        metricsService.getOllacraftStatus().then(
+          (value) => ({ value, error: null as string | null }),
+          (err) => ({
+            value: null,
+            error: err?.response?.status ? `HTTP ${err.response.status}` : err?.message || "Erreur réseau",
+          })
+        ),
       ]);
       setMinecraftStatus(data);
-      setOllacraftStatus(ollacraft);
+      // Keep the last known status when the request fails, instead of blanking the tab
+      setOllacraftStatus((previous) => ollacraft.value ?? previous);
+      setOllacraftError(ollacraft.error);
     } catch (err) {
       console.error("Failed to fetch Minecraft status:", err);
     } finally {
@@ -243,6 +252,7 @@ export default function Home() {
           loading={minecraftLoading}
           onRefresh={() => fetchMinecraftData(true)}
           ollacraft={ollacraftStatus}
+          ollacraftError={ollacraftError}
         />
       }
       backups={

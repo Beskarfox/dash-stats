@@ -11,6 +11,7 @@ interface MinecraftTabsProps {
   loading: boolean;
   onRefresh: () => void;
   ollacraft: OllacraftStatus | null;
+  ollacraftError?: string | null;
 }
 
 const SUB_TABS: { id: MinecraftSubTab; label: string; icon: typeof Server }[] = [
@@ -18,7 +19,7 @@ const SUB_TABS: { id: MinecraftSubTab; label: string; icon: typeof Server }[] = 
   { id: "ollama", label: "Ollama", icon: Bot },
 ];
 
-export const MinecraftTabs = ({ status, loading, onRefresh, ollacraft }: MinecraftTabsProps) => {
+export const MinecraftTabs = ({ status, loading, onRefresh, ollacraft, ollacraftError }: MinecraftTabsProps) => {
   const [subTab, setSubTab] = useState<MinecraftSubTab>("server");
 
   return (
@@ -42,7 +43,7 @@ export const MinecraftTabs = ({ status, loading, onRefresh, ollacraft }: Minecra
       {subTab === "server" ? (
         <MinecraftSection status={status} loading={loading} onRefresh={onRefresh} />
       ) : (
-        <OllacraftSection status={ollacraft} loading={loading} />
+        <OllacraftSection status={ollacraft} loading={loading} fetchError={ollacraftError} />
       )}
     </div>
   );

@@ -84,10 +84,11 @@ export interface OllacraftStatus {
   } | null;
   quests: OllacraftQuest[];
   inventory: Record<string, number>;
+  inventory_slots: ({ name: string; count: number } | null)[];
   last_action: OllacraftAction | null;
   recent_actions: OllacraftAction[];
   decision_source: string | null;
-  milestones: Record<string, boolean>;
+  milestones: Record<string, boolean | string | null>;
   waypoints: OllacraftWaypoint[];
   stronghold: { located: boolean; reached: boolean; estimate: OllacraftPosition | null } | null;
   end_portal: { frame_count: number; filled_count: number } | null;
@@ -96,6 +97,9 @@ export interface OllacraftStatus {
   metrics: Record<string, number>;
   tokens: Record<string, number>;
   updated_at: string | null;
+  // Set when the bot is offline and the data is the last status received from it
+  stale?: boolean;
+  last_seen?: string | null;
 }
 
 export interface BackupItem {

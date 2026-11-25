@@ -1,5 +1,7 @@
+import { ReactNode } from "react";
 import { OllacraftStatus } from "@/types";
 import { Card } from "@/components/ui/card";
+import { ItemIcon } from "@/components/atoms/ItemIcon";
 import {
   Bot,
   Heart,
@@ -14,12 +16,16 @@ import {
   Flag,
   Cpu,
   Loader2,
-  WifiOff
+  WifiOff,
+  BedDouble,
+  Shield
 } from "lucide-react";
 
 interface OllacraftSectionProps {
   status: OllacraftStatus | null;
   loading: boolean;
+  // Why the last request failed (HTTP status or network error), shown when no status could be loaded
+  fetchError?: string | null;
 }
 
 // French labels of the quest chain stages and common identifiers (falls back to the raw identifier)
@@ -89,6 +95,13 @@ const DIMENSIONS: Record<string, string> = {
   the_end: "End",
 };
 
+// Identifiers with no texture in the resource pack get a generic icon instead
+const FALLBACK_ICONS: Record<string, ReactNode> = {
+  bed: <BedDouble className="h-4 w-4 text-zinc-500" />,
+  end_bed: <BedDouble className="h-4 w-4 text-zinc-500" />,
+  shield: <Shield className="h-4 w-4 text-zinc-500" />,
+};
+
 const label = (id: string | null | undefined) => (id ? LABELS[id] || id.replace(/_/g, " ") : "--");
 
 const formatUptime = (seconds: number | null) => {
@@ -99,6 +112,18 @@ const formatUptime = (seconds: number | null) => {
   if (d > 0) return `${d}j ${h}h`;
   if (h > 0) return `${h}h ${m}min`;
   return `${m}min`;
+};
+
+const formatAgo = (iso: string | null | undefined) => {
+  if (!iso) return null;
+  const seconds = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
+  if (Number.isNaN(seconds)) return null;
+  if (seconds < 90) return "quelques secondes";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 90) return `${minutes} min`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 48) return `${hours} h`;
+  return `${Math.round(hours / 24)} j`;
 };
 
 const StatRow = ({ name, value }: { name: string; value: React.ReactNode }) => (
@@ -118,7 +143,7 @@ const CardTitleRow = ({ icon, title, extra }: { icon: React.ReactNode; title: st
   </div>
 );
 
-export const OllacraftSection = ({ status, loading }: OllacraftSectionProps) => {
+export const OllacraftSection = ({ status, loading, fetchError }: OllacraftSectionProps) => {
   if (!status && loading) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -131,11 +156,14 @@ export const OllacraftSection = ({ status, loading }: OllacraftSectionProps) => 
     return (
       <Card className="glass-card-blended bg-card/40 backdrop-blur-xl p-6 text-center text-muted-foreground">
         Impossible de charger le suivi d&apos;Ollama.
+        {fetchError && <span className="block mt-1 text-xs font-mono text-rose-300/70">{fetchError}</span>}
       </Card>
     );
   }
 
-  if (!status.online) {
+  // Offline with nothing ever received: there is no progress to show. Otherwise the last known state stays visible.
+  const hasData = status.quests.length > 0;
+  if (!status.online && !hasData) {
     return (
       <Card className="glass-card-blended ring-0 bg-card/40 backdrop-blur-xl shadow-xl p-8 flex flex-col items-center text-center gap-3">
         <WifiOff className="h-8 w-8 text-rose-400/70" />
@@ -160,20 +188,66 @@ export const OllacraftSection = ({ status, loading }: OllacraftSectionProps) => 
       (index === PHASES.length - 1 && !PHASES.some((p) => p.quests.includes(q.id)))
     ),
   })).map((phase) => ({ ...phase, done: phase.items.filter((q) => q.done).length }));
-  const inventory = Object.entries(status.inventory).sort((a, b) => b[1] - a[1]);
+  // 36 slots like the game: 3 rows of 9, then the hotbar. Older bots only report totals per item:
+  // those are split into stacks of 64 and laid out in the same grid.
+  const slots: ({ name: string; count: number } | null)[] =
+    status.inventory_slots?.length === 36
+      ? status.inventory_slots
+      : (() => {
+          const stacks = Object.entries(status.inventory)
+            .sort((x, y) => y[1] - x[1])
+            .flatMap(([name, count]) =>
+              Array.from({ length: Math.ceil(count / 64) }, (_, index) => ({ name, count: Math.min(64, count - index * 64) }))
+            );
+          return Array.from({ length: 36 }, (_, index) => stacks[index] ?? null);
+        })();
+  const usedSlots = slots.filter(Boolean).length;
+  const renderSlot = (stack: { name: string; count: number } | null, index: number) => (
+    <div
+      key={index}
+      title={stack ? `${label(stack.name)} ×${stack.count}` : undefined}
+      className="relative aspect-square rounded-[3px] bg-zinc-800/70 border border-zinc-950/60 shadow-inner flex items-center justify-center"
+    >
+      {stack && (
+        <>
+          <ItemIcon id={stack.name} size={24} fallback={FALLBACK_ICONS[stack.name]} />
+          {stack.count > 1 && (
+            <span
+              className="absolute bottom-0 right-0.5 text-[10px] leading-none font-bold font-mono text-white"
+              style={{ textShadow: "1px 1px 0 #1f1f1f" }}
+            >
+              {stack.count}
+            </span>
+          )}
+        </>
+      )}
+    </div>
+  );
   const objective = status.objective;
   const metrics = status.metrics;
   const decisions = (metrics.deterministicDecisions || 0) + (metrics.llmDecisions || 0);
   const llmShare = decisions > 0 ? Math.round(((metrics.llmDecisions || 0) / decisions) * 100) : 0;
 
+  const offline = !status.online;
+  const lastSeen = formatAgo(status.last_seen);
+
   return (
     <div className="grid gap-6 grid-cols-1 xl:grid-cols-3">
+      {offline && (
+        <Card className="xl:col-span-3 glass-card-blended ring-0 bg-rose-500/10 backdrop-blur-xl shadow-xl px-5 py-3.5 flex-row items-center gap-3">
+          <WifiOff className="h-4 w-4 text-rose-400 shrink-0" />
+          <p className="text-sm text-rose-200/90">
+            <span className="font-bold">{username} est hors ligne.</span>{" "}
+            {lastSeen ? `Dernières données reçues il y a ${lastSeen}.` : "Voici les dernières données reçues."}
+          </p>
+        </Card>
+      )}
       {/* LEFT COLUMN: identity, objective, inventory */}
       <div className="xl:col-span-1 flex flex-col gap-6">
         <Card className="relative overflow-hidden glass-card-blended ring-0 bg-card/40 backdrop-blur-xl shadow-xl p-6">
           <div
             className="absolute top-0 right-0 w-32 h-32 rounded-full blur-[60px] pointer-events-none -z-10"
-            style={{ backgroundColor: status.running ? "rgba(16, 185, 129, 0.12)" : "rgba(245, 158, 11, 0.12)" }}
+            style={{ backgroundColor: offline ? "rgba(239, 68, 68, 0.12)" : status.running ? "rgba(16, 185, 129, 0.12)" : "rgba(245, 158, 11, 0.12)" }}
           />
           <div className="flex items-center gap-4 mb-3 bg-black/40 p-3 rounded-xl shadow-inner">
             <div className="w-14 h-14 shrink-0 bg-black/60 rounded-md overflow-hidden flex items-center justify-center">
@@ -189,9 +263,9 @@ export const OllacraftSection = ({ status, loading }: OllacraftSectionProps) => 
             <div className="min-w-0 flex-1">
               <h3 className="font-bold font-mono text-base text-foreground/90 truncate">{username}</h3>
               <div className="flex items-center gap-2 mt-1">
-                <span className={`h-2 w-2 rounded-full animate-pulse ${status.running ? "bg-emerald-400" : "bg-amber-400"}`} />
-                <span className={`text-xs font-bold ${status.running ? "text-emerald-400" : "text-amber-300"}`}>
-                  {status.running ? "Mode autonome actif" : "En pause"}
+                <span className={`h-2 w-2 rounded-full animate-pulse ${offline ? "bg-rose-500" : status.running ? "bg-emerald-400" : "bg-amber-400"}`} />
+                <span className={`text-xs font-bold ${offline ? "text-rose-400" : status.running ? "text-emerald-400" : "text-amber-300"}`}>
+                  {offline ? "Hors ligne" : status.running ? "Mode autonome actif" : "En pause"}
                 </span>
               </div>
             </div>
@@ -248,7 +322,8 @@ export const OllacraftSection = ({ status, loading }: OllacraftSectionProps) => 
               ) : null
             }
           />
-          <p className="text-lg font-bold text-foreground/90">
+          <p className="flex items-center gap-2.5 text-lg font-bold text-foreground/90">
+            {objective?.id && <ItemIcon id={objective.id} size={28} fallback={FALLBACK_ICONS[objective.id]} />}
             {label(objective?.id)}
             {objective && objective.amount > 1 ? <span className="text-muted-foreground/60"> ×{objective.amount}</span> : null}
           </p>
@@ -260,20 +335,13 @@ export const OllacraftSection = ({ status, loading }: OllacraftSectionProps) => 
           <CardTitleRow
             icon={<Package className="h-4 w-4 text-violet-400" />}
             title="Inventaire"
-            extra={<span className="text-[11px] font-bold font-mono text-zinc-400">{inventory.length} types</span>}
+            extra={<span className="text-[11px] font-bold font-mono text-zinc-400">{usedSlots} / 36</span>}
           />
-          {inventory.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-1.5 max-h-[320px] overflow-y-auto pr-1.5 custom-scrollbar">
-              {inventory.map(([item, count]) => (
-                <div key={item} className="flex items-center justify-between p-2 rounded-lg bg-black/10">
-                  <span className="text-xs text-foreground/80 truncate">{label(item)}</span>
-                  <span className="text-xs font-bold font-mono text-zinc-300">×{count}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs font-medium text-muted-foreground/50 text-center py-6">Inventaire vide</p>
-          )}
+          {/* Like the Minecraft inventory: 3 rows of 9, then the hotbar apart */}
+          <div className="p-1.5 rounded-lg bg-black/30">
+            <div className="grid grid-cols-9 gap-1">{slots.slice(0, 27).map(renderSlot)}</div>
+            <div className="grid grid-cols-9 gap-1 mt-3">{slots.slice(27, 36).map((stack, index) => renderSlot(stack, 27 + index))}</div>
+          </div>
         </Card>
       </div>
 
@@ -321,6 +389,7 @@ export const OllacraftSection = ({ status, loading }: OllacraftSectionProps) => 
                       ) : (
                         <Circle className={`h-4 w-4 shrink-0 ${quest.current ? "text-violet-300 animate-pulse" : "text-zinc-700"}`} />
                       )}
+                      <ItemIcon id={quest.id} fallback={FALLBACK_ICONS[quest.id]} />
                       <span
                         className={`text-sm truncate ${
                           quest.done ? "text-muted-foreground/50 line-through" : quest.current ? "text-violet-200 font-semibold" : "text-foreground/70"
